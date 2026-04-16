@@ -23,7 +23,12 @@ export function GMVChart() {
               tickFormatter={(value) => `${value / 1000}K`}
             />
             <Tooltip
-              formatter={(value: number) => [`AED ${value.toLocaleString()}`, 'GMV']}
+              formatter={(value) => {
+                if (typeof value === 'number') {
+                  return [`AED ${value.toLocaleString()}`, 'GMV'];
+                }
+                return [String(value), 'GMV'];
+              }}
               contentStyle={{
                 backgroundColor: '#131732',
                 border: 'none',

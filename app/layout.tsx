@@ -3,6 +3,7 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { TabNav } from "@/components/TabNav";
 import { Sidebar } from "@/components/Sidebar";
+import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "CatMan Cockpit - Delivery Hero",
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-dh-gray">
+        <Providers>
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar - hidden on mobile, shown on desktop */}
           <div className="hidden lg:block">
@@ -42,6 +44,7 @@ export default function RootLayout({
             </main>
           </div>
         </div>
+        </Providers>
       </body>
     </html>
   );

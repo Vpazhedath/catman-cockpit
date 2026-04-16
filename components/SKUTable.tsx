@@ -8,7 +8,7 @@ interface SKURow {
   basePrice: number;
   discount: number | null;
   margin: number;
-  engineSignals: string[];
+  engineSignals: readonly string[];
 }
 
 interface SKUTableProps {
