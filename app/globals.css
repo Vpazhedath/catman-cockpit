@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dh-blue: #131732;
+  --color-dh-red: #D61F26;
+  --color-dh-green: #A2FAA3;
+  --color-dh-purple: #4629FF;
+  --color-dh-gray: #F5F5F6;
+}
+
+body {
+  background-color: var(--color-dh-gray);
+}
