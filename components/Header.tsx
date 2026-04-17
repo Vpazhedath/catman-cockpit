@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { IconArc } from './icons/IconArc';
 import { DH_ENTITIES } from '@/lib/sample-data';
-import { SearchInput } from './ui/SearchInput';
 import { DateRangePicker } from './ui/DatePicker';
 import { NotificationPanel } from './NotificationPanel';
+import { CommandPalette } from './CommandPalette';
 
 export function Header() {
   const [selectedEntity, setSelectedEntity] = useState('Talabat UAE');
@@ -19,10 +19,8 @@ export function Header() {
         <span className="text-lg font-semibold hidden sm:inline">CatMan Cockpit</span>
       </div>
 
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <SearchInput placeholder="Search SKUs, categories..." />
-      </div>
+      {/* Command Palette */}
+      <CommandPalette />
 
       {/* Entity Selector */}
       <div className="relative shrink-0">
