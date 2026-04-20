@@ -6,6 +6,7 @@ import { DH_ENTITIES } from '@/lib/sample-data';
 import { DateRangePicker } from './ui/DatePicker';
 import { NotificationPanel } from './NotificationPanel';
 import { CommandPalette } from './CommandPalette';
+import { UserDropdown } from './UserDropdown';
 
 export function Header() {
   const [selectedEntity, setSelectedEntity] = useState('Talabat UAE');
@@ -62,9 +63,7 @@ export function Header() {
         <NotificationPanel />
 
         {/* User Avatar */}
-        <button className="w-8 h-8 bg-dh-red rounded-full flex items-center justify-center text-sm font-medium">
-          VP
-        </button>
+        <UserDropdown />
       </div>
     </header>
   );

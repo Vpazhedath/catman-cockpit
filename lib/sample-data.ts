@@ -8,6 +8,15 @@ export const DH_COLORS = {
   white: '#FFFFFF',
 } as const;
 
+// SKU Status Types (from DMart Lifecycle Strategy)
+export type SKUStatus = 'active' | 'on-hold' | 'discontinued' | 'retired';
+
+// SKU Maturity Stages (from DMart Lifecycle Strategy)
+export type SKUMaturityStage = 'new' | 'probation' | 'mature' | 'review' | 'phase-out';
+
+// SKU Efficiency Classification (from DMart Lifecycle Strategy)
+export type SKUEfficiency = 'efficient' | 'slow-mover' | 'zero-mover' | 'low-availability';
+
 // Sample KPI Data
 export const SAMPLE_KPIS = [
   { label: 'GMV', value: 'AED 2.4M', delta: '+12.4% WoW', direction: 'up' as const },
@@ -32,20 +41,33 @@ export const SAMPLE_GMV_TREND = [
 export const SAMPLE_ENGINE_SIGNALS = [
   { engine: 'choice' as const, message: '23 missing SKUs vs Carrefour & Lulu', ctaLabel: 'Review assortment →', ctaTab: 'assortment' },
   { engine: 'affordability' as const, message: '14 SKUs priced 8–15% above market', ctaLabel: 'View pricing →', ctaTab: 'price' },
-  { engine: 'lifecycle' as const, message: 'Almarai Laban 200ml phase-out flagged', ctaLabel: 'Review lifecycle →', ctaTab: 'lifecycle' },
+  { engine: 'lifecycle' as const, message: 'Almarai Laban 200ml flagged for discontinuation', ctaLabel: 'Review lifecycle →', ctaTab: 'lifecycle' },
   { engine: 'profitability' as const, message: '3 suppliers margin below 12%', ctaLabel: 'View profitability →', ctaTab: 'profitability' },
 ];
 
-// Sample SKU Data
-export const SAMPLE_SKUS = [
-  { name: 'Almarai Full Cream 1L', category: 'Dairy', status: 'live' as const, costPrice: 5.20, basePrice: 7.50, discount: null, margin: 31, engineSignals: ['lifecycle', 'choice'] as const },
-  { name: 'Lacnor Orange Juice 1L', category: 'Juices', status: 'live' as const, costPrice: 3.80, basePrice: 6.00, discount: 10, margin: 37, engineSignals: ['affordability'] as const },
-  { name: 'Nestle Pure Life 1.5L', category: 'Water', status: 'oos' as const, costPrice: 1.10, basePrice: 2.00, discount: null, margin: 45, engineSignals: ['lifecycle'] as const },
-  { name: 'Barakat Fresh Milk 2L', category: 'Dairy', status: 'new' as const, costPrice: 7.50, basePrice: 11.00, discount: null, margin: 32, engineSignals: [] as const },
-  { name: 'Coca-Cola 330ml Can', category: 'Carbonated', status: 'live' as const, costPrice: 1.90, basePrice: 3.25, discount: null, margin: 41, engineSignals: ['affordability'] as const },
-  { name: 'Almarai Laban 200ml', category: 'Dairy', status: 'phase-out' as const, costPrice: 1.20, basePrice: 1.80, discount: null, margin: 25, engineSignals: ['lifecycle'] as const },
-  { name: 'Red Bull 250ml', category: 'Energy drinks', status: 'live' as const, costPrice: 4.50, basePrice: 7.00, discount: 5, margin: 35, engineSignals: ['affordability', 'choice'] as const },
-  { name: 'Sunkist Lemon 330ml', category: 'Carbonated', status: 'new' as const, costPrice: 2.10, basePrice: 3.50, discount: null, margin: 40, engineSignals: ['choice'] as const },
+// Sample SKU Data - Updated with correct statuses from DMart Lifecycle Strategy
+export const SAMPLE_SKUS: Array<{
+  name: string;
+  category: string;
+  status: SKUStatus;
+  maturityStage: SKUMaturityStage;
+  efficiency: SKUEfficiency;
+  costPrice: number;
+  basePrice: number;
+  discount: number | null;
+  margin: number;
+  engineSignals: readonly string[];
+}> = [
+  { name: 'Almarai Full Cream 1L', category: 'Dairy', status: 'active', maturityStage: 'mature', efficiency: 'efficient', costPrice: 5.20, basePrice: 7.50, discount: null, margin: 31, engineSignals: ['lifecycle', 'choice'] },
+  { name: 'Lacnor Orange Juice 1L', category: 'Juices', status: 'active', maturityStage: 'mature', efficiency: 'efficient', costPrice: 3.80, basePrice: 6.00, discount: 10, margin: 37, engineSignals: ['affordability'] },
+  { name: 'Nestle Pure Life 1.5L', category: 'Water', status: 'on-hold', maturityStage: 'mature', efficiency: 'low-availability', costPrice: 1.10, basePrice: 2.00, discount: null, margin: 45, engineSignals: ['lifecycle'] },
+  { name: 'Barakat Fresh Milk 2L', category: 'Dairy', status: 'active', maturityStage: 'new', efficiency: 'efficient', costPrice: 7.50, basePrice: 11.00, discount: null, margin: 32, engineSignals: [] },
+  { name: 'Coca-Cola 330ml Can', category: 'Carbonated', status: 'active', maturityStage: 'mature', efficiency: 'efficient', costPrice: 1.90, basePrice: 3.25, discount: null, margin: 41, engineSignals: ['affordability'] },
+  { name: 'Almarai Laban 200ml', category: 'Dairy', status: 'on-hold', maturityStage: 'phase-out', efficiency: 'zero-mover', costPrice: 1.20, basePrice: 1.80, discount: null, margin: 25, engineSignals: ['lifecycle'] },
+  { name: 'Red Bull 250ml', category: 'Energy drinks', status: 'active', maturityStage: 'mature', efficiency: 'efficient', costPrice: 4.50, basePrice: 7.00, discount: 5, margin: 35, engineSignals: ['affordability', 'choice'] },
+  { name: 'Sunkist Lemon 330ml', category: 'Carbonated', status: 'active', maturityStage: 'new', efficiency: 'slow-mover', costPrice: 2.10, basePrice: 3.50, discount: null, margin: 40, engineSignals: ['choice'] },
+  { name: 'Premium Greek Yogurt 500g', category: 'Dairy', status: 'on-hold', maturityStage: 'probation', efficiency: 'slow-mover', costPrice: 8.00, basePrice: 12.50, discount: null, margin: 28, engineSignals: ['lifecycle'] },
+  { name: 'Organic Oat Milk 1L', category: 'Dairy Alternatives', status: 'active', maturityStage: 'new', efficiency: 'efficient', costPrice: 6.50, basePrice: 10.00, discount: null, margin: 35, engineSignals: ['choice'] },
 ];
 
 // Sample Assortment Recommendations

@@ -106,8 +106,8 @@ export function SKUDetailModal({ sku, onClose }: SKUDetailModalProps) {
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-2">Current Status</h3>
               <div className="flex items-center gap-2">
-                <StatusBadge status={sku.status === 'active' ? 'live' : sku.status === 'on-hold' ? 'oos' : 'phase-out'} />
-                <span className="text-sm text-gray-500 capitalize">{sku.status}</span>
+                <StatusBadge status={sku.status} />
+                <span className="text-sm text-gray-500 capitalize">{sku.status.replace('-', ' ')}</span>
               </div>
             </div>
             <div>

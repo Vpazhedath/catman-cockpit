@@ -6,12 +6,13 @@ interface FilterChipsProps {
   counts: Record<string, number>;
 }
 
+// Filter options based on DMart Lifecycle Strategy SKU statuses
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'live', label: 'Live' },
-  { key: 'new', label: 'New' },
-  { key: 'oos', label: 'OOS' },
-  { key: 'phase-out', label: 'Phase-out' },
+  { key: 'active', label: 'Active' },
+  { key: 'on-hold', label: 'On-Hold' },
+  { key: 'discontinued', label: 'Discontinued' },
+  { key: 'retired', label: 'Retired' },
 ];
 
 export function FilterChips({ activeFilter, onFilterChange, counts }: FilterChipsProps) {

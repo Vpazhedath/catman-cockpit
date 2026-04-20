@@ -60,13 +60,13 @@ export default function SKUTowerPage() {
     return data;
   }, [activeFilter, selectedCategory, searchQuery, sortBy, sortOrder]);
 
-  // Calculate counts
+  // Calculate counts based on DMart Lifecycle Strategy statuses
   const counts = {
     all: SAMPLE_SKUS.length,
-    live: SAMPLE_SKUS.filter(s => s.status === 'live').length,
-    new: SAMPLE_SKUS.filter(s => s.status === 'new').length,
-    oos: SAMPLE_SKUS.filter(s => s.status === 'oos').length,
-    'phase-out': SAMPLE_SKUS.filter(s => s.status === 'phase-out').length,
+    active: SAMPLE_SKUS.filter(s => s.status === 'active').length,
+    'on-hold': SAMPLE_SKUS.filter(s => s.status === 'on-hold').length,
+    discontinued: SAMPLE_SKUS.filter(s => s.status === 'discontinued').length,
+    retired: SAMPLE_SKUS.filter(s => s.status === 'retired').length,
   };
 
   // Summary stats

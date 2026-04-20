@@ -30,22 +30,65 @@ export function Badge({ children, variant = 'default', size = 'md', className = 
   );
 }
 
-// Status badge specifically for SKU status
+// Status badge specifically for SKU status (from DMart Lifecycle Strategy)
 interface StatusBadgeProps {
-  status: 'live' | 'new' | 'oos' | 'phase-out';
+  status: 'active' | 'on-hold' | 'discontinued' | 'retired';
 }
 
 const statusConfig = {
-  live: { label: 'Live', variant: 'success' as const },
-  new: { label: 'New', variant: 'info' as const },
-  oos: { label: 'OOS', variant: 'danger' as const },
-  'phase-out': { label: 'Phase-out', variant: 'warning' as const },
+  active: { label: 'Active', variant: 'success' as const },
+  'on-hold': { label: 'On-Hold', variant: 'warning' as const },
+  discontinued: { label: 'Discontinued', variant: 'danger' as const },
+  retired: { label: 'Retired', variant: 'default' as const },
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const config = statusConfig[status];
   return (
     <Badge variant={config.variant}>
+      {config.label}
+    </Badge>
+  );
+}
+
+// Maturity Stage badge (from DMart Lifecycle Strategy)
+interface MaturityBadgeProps {
+  stage: 'new' | 'probation' | 'mature' | 'review' | 'phase-out';
+}
+
+const maturityConfig = {
+  new: { label: 'New', variant: 'info' as const },
+  probation: { label: 'Probation', variant: 'purple' as const },
+  mature: { label: 'Mature', variant: 'success' as const },
+  review: { label: 'Review', variant: 'warning' as const },
+  'phase-out': { label: 'Phase-out', variant: 'danger' as const },
+};
+
+export function MaturityBadge({ stage }: MaturityBadgeProps) {
+  const config = maturityConfig[stage];
+  return (
+    <Badge variant={config.variant} size="sm">
+      {config.label}
+    </Badge>
+  );
+}
+
+// Efficiency badge (from DMart Lifecycle Strategy)
+interface EfficiencyBadgeProps {
+  efficiency: 'efficient' | 'slow-mover' | 'zero-mover' | 'low-availability';
+}
+
+const efficiencyConfig = {
+  efficient: { label: 'Efficient', variant: 'success' as const },
+  'slow-mover': { label: 'Slow Mover', variant: 'warning' as const },
+  'zero-mover': { label: 'Zero Mover', variant: 'danger' as const },
+  'low-availability': { label: 'Low Availability', variant: 'warning' as const },
+};
+
+export function EfficiencyBadge({ efficiency }: EfficiencyBadgeProps) {
+  const config = efficiencyConfig[efficiency];
+  return (
+    <Badge variant={config.variant} size="sm">
       {config.label}
     </Badge>
   );
