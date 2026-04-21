@@ -30,6 +30,14 @@ const ENGINE_COLORS: Record<string, string> = {
   profitability: 'bg-cp-color-surface-success',
 };
 
+// Warehouse status colors
+const WAREHOUSE_STATUS_COLORS: Record<string, string> = {
+  active: 'bg-cp-color-surface-success',
+  'on-hold': 'bg-cp-color-surface-warning',
+  discontinued: 'bg-cp-color-surface-error',
+  retired: 'bg-cp-color-surface-secondary',
+};
+
 export function SKUTable({ data, onRowDoubleClick }: SKUTableProps) {
   return (
     <div className="space-y-2">
@@ -99,8 +107,8 @@ export function SKUTable({ data, onRowDoubleClick }: SKUTableProps) {
                     {row.warehouses.map((wh) => (
                       <div
                         key={wh.warehouse}
-                        className={`w-3 h-3 rounded-sm ${wh.inStock ? 'bg-cp-color-surface-success' : 'bg-cp-color-surface-secondary'}`}
-                        title={`${wh.warehouse}: ${wh.inStock ? `${wh.quantity} units` : 'Out of stock'} (${wh.lastUpdated})`}
+                        className={`w-3 h-3 rounded-sm ${WAREHOUSE_STATUS_COLORS[wh.status] || 'bg-cp-color-surface-secondary'}`}
+                        title={`${wh.warehouse}: ${wh.status}${wh.inStock ? ` - ${wh.quantity} units` : ' - Out of stock'} (${wh.lastUpdated})`}
                       />
                     ))}
                     <span className="text-xs text-cp-color-text-tertiary ml-1">{activeWarehouses}/{totalWarehouses}</span>

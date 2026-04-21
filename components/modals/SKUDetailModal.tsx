@@ -31,6 +31,14 @@ const EFFICIENCY_STYLES = {
   'low-availability': 'text-cp-color-text-warning bg-cp-color-surface-warning-subtle',
 };
 
+// Warehouse status badge styles
+const WAREHOUSE_STATUS_STYLES = {
+  active: { bg: 'bg-cp-color-surface-success-subtle', text: 'text-cp-color-text-success', dot: 'bg-cp-color-surface-success' },
+  'on-hold': { bg: 'bg-cp-color-surface-warning-subtle', text: 'text-cp-color-text-warning', dot: 'bg-cp-color-surface-warning' },
+  discontinued: { bg: 'bg-cp-color-surface-error-subtle', text: 'text-cp-color-text-error', dot: 'bg-cp-color-surface-error' },
+  retired: { bg: 'bg-cp-color-surface-secondary', text: 'text-cp-color-text-secondary', dot: 'bg-cp-color-surface-secondary' },
+};
+
 export function SKUDetailModal({ sku, onClose }: SKUDetailModalProps) {
   if (!sku) return null;
 
@@ -117,30 +125,38 @@ export function SKUDetailModal({ sku, onClose }: SKUDetailModalProps) {
           <div>
             <h3 className="text-sm font-medium text-cp-color-text-secondary mb-3">Warehouse Distribution</h3>
             <div className="space-y-2">
-              {sku.warehouses.map((wh) => (
-                <div
-                  key={wh.warehouse}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${wh.inStock ? 'border-cp-color-border-primary bg-cp-color-surface-primary' : 'border-cp-color-border-primary bg-cp-color-surface-secondary'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${wh.inStock ? 'bg-cp-color-surface-success' : 'bg-cp-color-surface-error'}`} />
-                    <div>
-                      <p className="text-sm font-medium text-cp-color-text-primary">{wh.warehouse}</p>
-                      <p className="text-xs text-cp-color-text-tertiary">Updated {wh.lastUpdated}</p>
+              {sku.warehouses.map((wh) => {
+                const whStatusStyle = WAREHOUSE_STATUS_STYLES[wh.status];
+                return (
+                  <div
+                    key={wh.warehouse}
+                    className={`flex items-center justify-between p-3 rounded-lg border border-cp-color-border-primary ${wh.inStock ? 'bg-cp-color-surface-primary' : 'bg-cp-color-surface-secondary'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${whStatusStyle.dot}`} />
+                      <div>
+                        <p className="text-sm font-medium text-cp-color-text-primary">{wh.warehouse}</p>
+                        <p className="text-xs text-cp-color-text-tertiary">Updated {wh.lastUpdated}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${whStatusStyle.bg} ${whStatusStyle.text}`}>
+                        {whStatusStyle.text === 'text-cp-color-text-warning' ? 'On-Hold' : wh.status.charAt(0).toUpperCase() + wh.status.slice(1)}
+                      </span>
+                      <div className="text-right">
+                        {wh.inStock ? (
+                          <div>
+                            <p className="text-lg font-bold text-cp-color-text-primary">{wh.quantity.toLocaleString()}</p>
+                            <p className="text-xs text-cp-color-text-tertiary">units</p>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-cp-color-text-tertiary">No stock</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    {wh.inStock ? (
-                      <div>
-                        <p className="text-lg font-bold text-cp-color-text-primary">{wh.quantity.toLocaleString()}</p>
-                        <p className="text-xs text-cp-color-text-tertiary">units in stock</p>
-                      </div>
-                    ) : (
-                      <Badge variant="danger">Out of Stock</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Total Stock Summary */}
