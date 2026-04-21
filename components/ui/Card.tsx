@@ -1,11 +1,12 @@
 'use client';
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface CardProps {
   children: ReactNode;
   className?: string;
   padding?: 'none' | 'sm' | 'md' | 'lg';
+  variant?: 'outlined' | 'filled' | 'elevated';
 }
 
 const paddingStyles = {
@@ -15,9 +16,15 @@ const paddingStyles = {
   lg: 'p-6',
 };
 
-export function Card({ children, className = '', padding = 'md' }: CardProps) {
+const variantStyles = {
+  outlined: 'border border-cp-color-border-primary',
+  filled: 'bg-cp-color-surface-secondary',
+  elevated: 'shadow-lg',
+};
+
+export function Card({ children, className = '', padding = 'md', variant = 'outlined' }: CardProps) {
   return (
-    <div className={`bg-white rounded-xl shadow-sm ${paddingStyles[padding]} ${className}`}>
+    <div className={`bg-cp-color-surface-primary rounded-xl ${variantStyles[variant]} ${paddingStyles[padding]} ${className}`}>
       {children}
     </div>
   );
@@ -33,8 +40,8 @@ export function CardHeader({ title, subtitle, action }: CardHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-4">
       <div>
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-        {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+        <h3 className="text-sm font-medium text-cp-color-text-secondary">{title}</h3>
+        {subtitle && <p className="text-xs text-cp-color-text-tertiary mt-0.5">{subtitle}</p>}
       </div>
       {action && <div>{action}</div>}
     </div>

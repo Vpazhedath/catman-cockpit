@@ -89,8 +89,8 @@ export default function ProfitabilityPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-dh-blue">Profitability</h1>
-          <p className="text-gray-500 mt-1">Profitability Engine • Supplier margins & negotiation opportunities</p>
+          <h1 className="text-2xl font-bold text-cp-color-text-primary">Profitability</h1>
+          <p className="text-cp-color-text-secondary mt-1">Profitability Engine • Supplier margins & negotiation opportunities</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={() => setIsExportOpen(true)}>
@@ -105,32 +105,32 @@ export default function ProfitabilityPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <p className="text-sm text-gray-500">Avg Margin</p>
-          <p className="text-2xl font-bold text-dh-blue">{stats.avgMargin}%</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Avg Margin</p>
+          <p className="text-2xl font-bold text-cp-color-text-primary">{stats.avgMargin}%</p>
           <div className="flex items-center gap-1 mt-1">
-            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-cp-color-text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
-            <p className="text-sm text-green-600">+2.1% vs last month</p>
+            <p className="text-sm text-cp-color-text-success">+2.1% vs last month</p>
           </div>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Total Contribution</p>
-          <p className="text-2xl font-bold text-dh-blue">AED {(totalContribution / 1000).toFixed(0)}K</p>
-          <p className="text-sm text-gray-500 mt-1">This month</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Total Contribution</p>
+          <p className="text-2xl font-bold text-cp-color-text-primary">AED {(totalContribution / 1000).toFixed(0)}K</p>
+          <p className="text-sm text-cp-color-text-secondary mt-1">This month</p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Active Suppliers</p>
-          <p className="text-2xl font-bold text-dh-blue">{SUPPLIER_SCORECARD.length}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            <span className="text-green-600">{stats.ratingA} A-rated</span> • {stats.ratingB} B-rated
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Active Suppliers</p>
+          <p className="text-2xl font-bold text-cp-color-text-primary">{SUPPLIER_SCORECARD.length}</p>
+          <p className="text-sm text-cp-color-text-secondary mt-1">
+            <span className="text-cp-color-text-success">{stats.ratingA} A-rated</span> • {stats.ratingB} B-rated
           </p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Renegotiation Ops</p>
-          <p className="text-2xl font-bold text-dh-red">{RENEGOTIATION_FLAGS.length}</p>
-          <p className="text-sm text-dh-green mt-1">AED 34.3K potential</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Renegotiation Ops</p>
+          <p className="text-2xl font-bold text-cp-color-text-error">{RENEGOTIATION_FLAGS.length}</p>
+          <p className="text-sm text-cp-color-text-success mt-1">AED 34.3K potential</p>
         </Card>
       </div>
 

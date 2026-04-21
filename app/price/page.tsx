@@ -82,8 +82,8 @@ export default function PricePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-dh-blue">Price & Promo</h1>
-          <p className="text-gray-500 mt-1">Affordability Engine • Competitor monitoring & promo recommendations</p>
+          <h1 className="text-2xl font-bold text-cp-color-text-primary">Price & Promo</h1>
+          <p className="text-cp-color-text-secondary mt-1">Affordability Engine • Competitor monitoring & promo recommendations</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={() => setIsExportOpen(true)}>
@@ -98,33 +98,33 @@ export default function PricePage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <p className="text-sm text-gray-500">Price Competitiveness</p>
-          <p className="text-2xl font-bold text-dh-blue">72%</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Price Competitiveness</p>
+          <p className="text-2xl font-bold text-cp-color-text-primary">72%</p>
           <div className="mt-2 flex items-center gap-2">
-            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-dh-green rounded-full" style={{ width: '72%' }} />
+            <div className="flex-1 h-2 bg-cp-color-surface-secondary rounded-full overflow-hidden">
+              <div className="h-full bg-cp-color-surface-success rounded-full" style={{ width: '72%' }} />
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1">{stats.competitive} of {COMPETITOR_PRICES.length} SKUs competitive</p>
+          <p className="text-xs text-cp-color-text-tertiary mt-1">{stats.competitive} of {COMPETITOR_PRICES.length} SKUs competitive</p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Avg Price Gap</p>
-          <p className="text-2xl font-bold text-red-600">+4.2%</p>
-          <p className="text-sm text-gray-500 mt-1">vs competitor avg</p>
-          <p className="text-xs text-green-600 mt-1">↓ 0.8% from last week</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Avg Price Gap</p>
+          <p className="text-2xl font-bold text-cp-color-text-error">+4.2%</p>
+          <p className="text-sm text-cp-color-text-secondary mt-1">vs competitor avg</p>
+          <p className="text-xs text-cp-color-text-success mt-1">↓ 0.8% from last week</p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Above Market</p>
-          <p className="text-2xl font-bold text-amber-600">{stats.high}</p>
-          <p className="text-sm text-gray-500 mt-1">SKUs priced high</p>
-          <p className="text-xs text-amber-600 mt-1">Est. AED 12K lost revenue/week</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Above Market</p>
+          <p className="text-2xl font-bold text-cp-color-text-warning">{stats.high}</p>
+          <p className="text-sm text-cp-color-text-secondary mt-1">SKUs priced high</p>
+          <p className="text-xs text-cp-color-text-warning mt-1">Est. AED 12K lost revenue/week</p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Promo Opportunities</p>
-          <p className="text-2xl font-bold text-purple-600">{PROMO_RECOMMENDATIONS.length}</p>
-          <p className="text-sm text-gray-500 mt-1">High impact</p>
-          <p className="text-xs text-dh-green mt-1">Est. +1,260 orders/week</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Promo Opportunities</p>
+          <p className="text-2xl font-bold text-cp-color-text-brand">{PROMO_RECOMMENDATIONS.length}</p>
+          <p className="text-sm text-cp-color-text-secondary mt-1">High impact</p>
+          <p className="text-xs text-cp-color-text-success mt-1">Est. +1,260 orders/week</p>
         </Card>
       </div>
 
@@ -133,7 +133,7 @@ export default function PricePage() {
         <select
           value={selectedCategory}
           onChange={e => setSelectedCategory(e.target.value)}
-          className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-dh-red"
+          className="px-3 py-2 bg-cp-color-surface-primary border border-cp-color-border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cp-color-surface-brand"
         >
           {categories.map(cat => (
             <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
@@ -145,7 +145,7 @@ export default function PricePage() {
               key={filter}
               onClick={() => setPriceFilter(filter)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                priceFilter === filter ? 'bg-dh-blue text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                priceFilter === filter ? 'bg-cp-color-surface-brand text-cp-color-text-inverse' : 'bg-cp-color-surface-primary text-cp-color-text-secondary hover:bg-cp-color-surface-secondary border border-cp-color-border-primary'
               }`}
             >
               {filter === 'all' ? 'All' : filter === 'high' ? 'Above Market' : filter === 'low' ? 'Below Market' : 'Competitive'}
@@ -156,58 +156,58 @@ export default function PricePage() {
       </div>
 
       {/* Price History Chart */}
-      <Card>
+      <Card variant="outlined" className="p-5">
         <CardHeader title="Price History: Almarai Full Cream 1L" subtitle="Last 7 days competitor tracking" />
         <div className="h-64 mt-4">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={PRICE_HISTORY}>
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--cp-color-text-secondary)' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--cp-color-text-secondary)' }} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
               <Tooltip
                 formatter={(value) => typeof value === 'number' ? `AED ${value.toFixed(2)}` : value}
-                contentStyle={{ backgroundColor: '#131732', border: 'none', borderRadius: '8px', color: 'white' }}
+                contentStyle={{ backgroundColor: 'var(--cp-color-surface-primary)', border: 'none', borderRadius: '8px', color: 'var(--cp-color-text-inverse)' }}
               />
               <Legend />
-              <Line type="monotone" dataKey="our" stroke="#D61F26" strokeWidth={2} dot={{ fill: '#D61F26' }} name="Our Price" />
-              <Line type="monotone" dataKey="carrefour" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6' }} name="Carrefour" />
-              <Line type="monotone" dataKey="lulu" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }} name="Lulu" />
-              <Line type="monotone" dataKey="noon" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6' }} name="Noon" />
+              <Line type="monotone" dataKey="our" stroke="var(--cp-color-surface-brand)" strokeWidth={2} dot={{ fill: 'var(--cp-color-surface-brand)' }} name="Our Price" />
+              <Line type="monotone" dataKey="carrefour" stroke="var(--cp-color-surface-information)" strokeWidth={2} dot={{ fill: 'var(--cp-color-surface-information)' }} name="Carrefour" />
+              <Line type="monotone" dataKey="lulu" stroke="var(--cp-color-surface-success)" strokeWidth={2} dot={{ fill: 'var(--cp-color-surface-success)' }} name="Lulu" />
+              <Line type="monotone" dataKey="noon" stroke="var(--cp-color-surface-brand)" strokeWidth={2} dot={{ fill: 'var(--cp-color-surface-brand)' }} name="Noon" />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </Card>
 
       {/* Competitor Price Comparison */}
-      <Card padding="none">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+      <Card variant="outlined" className="overflow-hidden p-0">
+        <div className="p-5 border-b border-cp-color-border-primary flex items-center justify-between">
           <CardHeader title="Competitor Price Comparison" subtitle={`Last updated: Today, ${new Date().toLocaleTimeString()}`} />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-cp-color-surface-secondary">
               <tr>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">SKU</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Category</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Our Price</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Carrefour</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Lulu</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Noon</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Gap</th>
-                <th className="text-center px-5 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="text-center px-5 py-3 text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">SKU</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Category</th>
+                <th className="text-right px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Our Price</th>
+                <th className="text-right px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Carrefour</th>
+                <th className="text-right px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Lulu</th>
+                <th className="text-right px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Noon</th>
+                <th className="text-right px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Gap</th>
+                <th className="text-center px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Status</th>
+                <th className="text-center px-5 py-3 text-xs font-medium text-cp-color-text-secondary uppercase">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-cp-color-border-primary">
               {filteredPrices.map((row, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 text-sm font-medium text-dh-blue">{row.sku}</td>
-                  <td className="px-5 py-3 text-sm text-gray-500">{row.category}</td>
+                <tr key={idx} className="hover:bg-cp-color-surface-secondary">
+                  <td className="px-5 py-3 text-sm font-medium text-cp-color-text-primary">{row.sku}</td>
+                  <td className="px-5 py-3 text-sm text-cp-color-text-secondary">{row.category}</td>
                   <td className="px-5 py-3 text-sm text-right font-medium">AED {row.ourPrice.toFixed(2)}</td>
-                  <td className="px-5 py-3 text-sm text-right text-gray-600">AED {row.carrefour.toFixed(2)}</td>
-                  <td className="px-5 py-3 text-sm text-right text-gray-600">AED {row.lulu.toFixed(2)}</td>
-                  <td className="px-5 py-3 text-sm text-right text-gray-600">AED {row.noon.toFixed(2)}</td>
+                  <td className="px-5 py-3 text-sm text-right text-cp-color-text-secondary">AED {row.carrefour.toFixed(2)}</td>
+                  <td className="px-5 py-3 text-sm text-right text-cp-color-text-secondary">AED {row.lulu.toFixed(2)}</td>
+                  <td className="px-5 py-3 text-sm text-right text-cp-color-text-secondary">AED {row.noon.toFixed(2)}</td>
                   <td className={`px-5 py-3 text-sm text-right font-medium ${
-                    row.gap.startsWith('+') ? 'text-red-600' : 'text-green-600'
+                    row.gap.startsWith('+') ? 'text-cp-color-text-error' : 'text-cp-color-text-success'
                   }`}>
                     {row.gap}
                   </td>
@@ -229,27 +229,27 @@ export default function PricePage() {
       </Card>
 
       {/* Promo Recommendations */}
-      <Card>
+      <Card variant="outlined" className="p-5">
         <CardHeader title="Promo Recommendations" subtitle={`${PROMO_RECOMMENDATIONS.length} suggestions from Affordability Engine`} />
         <div className="space-y-3">
           {PROMO_RECOMMENDATIONS.map((promo, idx) => (
-            <div key={idx} className={`border rounded-lg p-4 flex items-center justify-between ${appliedPromos.includes(promo.sku) ? 'border-green-200 bg-green-50' : 'border-gray-100'}`}>
+            <div key={idx} className={`border rounded-lg p-4 flex items-center justify-between ${appliedPromos.includes(promo.sku) ? 'border-cp-color-surface-success bg-cp-color-surface-success-subtle' : 'border-cp-color-border-primary'}`}>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-dh-blue">{promo.sku}</span>
+                  <span className="font-medium text-cp-color-text-primary">{promo.sku}</span>
                   <Badge variant="purple">{promo.type}</Badge>
                   {appliedPromos.includes(promo.sku) && (
                     <Badge variant="success">Applied</Badge>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">{promo.reason}</p>
+                <p className="text-sm text-cp-color-text-secondary">{promo.reason}</p>
                 <div className="flex items-center gap-4 mt-2">
-                  <span className="text-xs text-gray-400">Confidence: {promo.confidence}%</span>
+                  <span className="text-xs text-cp-color-text-tertiary">Confidence: {promo.confidence}%</span>
                 </div>
               </div>
               <div className="text-right mr-6">
-                <p className="font-medium text-dh-blue">{promo.suggested}</p>
-                <p className="text-xs text-dh-green">{promo.impact}</p>
+                <p className="font-medium text-cp-color-text-primary">{promo.suggested}</p>
+                <p className="text-xs text-cp-color-text-success">{promo.impact}</p>
               </div>
               <Button
                 size="sm"

@@ -1,50 +1,70 @@
 'use client';
 
-import { SKULifecycleState } from '@/lib/lifecycle-engine';
-import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { SKUWithWarehouses } from '@/lib/sample-data';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
 interface SKUDetailModalProps {
-  sku: SKULifecycleState | null;
+  sku: SKUWithWarehouses | null;
   onClose: () => void;
 }
+
+const STATUS_STYLES = {
+  active: { bg: 'bg-cp-color-surface-success-subtle', text: 'text-cp-color-text-success', label: 'Active' },
+  'on-hold': { bg: 'bg-cp-color-surface-warning-subtle', text: 'text-cp-color-text-warning', label: 'On-Hold' },
+  discontinued: { bg: 'bg-cp-color-surface-error-subtle', text: 'text-cp-color-text-error', label: 'Discontinued' },
+  retired: { bg: 'bg-cp-color-surface-secondary', text: 'text-cp-color-text-secondary', label: 'Retired' },
+};
+
+const MATURITY_STYLES = {
+  new: { bg: 'bg-cp-color-surface-information-subtle', text: 'text-cp-color-text-information' },
+  probation: { bg: 'bg-cp-color-surface-brand-subtle', text: 'text-cp-color-text-brand' },
+  mature: { bg: 'bg-cp-color-surface-success-subtle', text: 'text-cp-color-text-success' },
+  review: { bg: 'bg-cp-color-surface-warning-subtle', text: 'text-cp-color-text-warning' },
+  'phase-out': { bg: 'bg-cp-color-surface-error-subtle', text: 'text-cp-color-text-error' },
+};
+
+const EFFICIENCY_STYLES = {
+  efficient: 'text-cp-color-text-success bg-cp-color-surface-success-subtle',
+  'slow-mover': 'text-cp-color-text-warning bg-cp-color-surface-warning-subtle',
+  'zero-mover': 'text-cp-color-text-error bg-cp-color-surface-error-subtle',
+  'low-availability': 'text-cp-color-text-warning bg-cp-color-surface-warning-subtle',
+};
 
 export function SKUDetailModal({ sku, onClose }: SKUDetailModalProps) {
   if (!sku) return null;
 
-  const maturityColors = {
-    new: 'bg-blue-500',
-    probation: 'bg-purple-500',
-    mature: 'bg-green-500',
-    review: 'bg-amber-500',
-    'phase-out': 'bg-red-500',
-  };
-
-  const efficiencyColors = {
-    efficient: 'text-green-600 bg-green-50',
-    'slow-mover': 'text-amber-600 bg-amber-50',
-    'zero-mover': 'text-red-600 bg-red-50',
-    'low-availability': 'text-orange-600 bg-orange-50',
-  };
+  const statusStyle = STATUS_STYLES[sku.status];
+  const maturityStyle = MATURITY_STYLES[sku.maturityStage];
+  const activeWarehouses = sku.warehouses.filter(w => w.inStock);
+  const totalStock = sku.warehouses.reduce((sum, w) => sum + w.quantity, 0);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', zIndex: 9999 }}
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-cp-color-surface-primary rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-cp-color-border-primary shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        style={{ position: 'relative' }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-100">
+        <div className="p-6 border-b border-cp-color-border-primary">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-bold text-dh-blue">{sku.name}</h2>
-              <p className="text-gray-500 mt-1">{sku.category} • {sku.supplier}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs text-cp-color-text-tertiary font-mono">{sku.skuId}</span>
+              </div>
+              <h2 className="text-xl font-bold text-cp-color-text-primary">{sku.name}</h2>
+              <p className="text-cp-color-text-secondary mt-1">{sku.category} • {sku.supplier}</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              className="p-2 hover:bg-cp-color-surface-secondary rounded-lg transition"
             >
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-cp-color-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -53,123 +73,125 @@ export function SKUDetailModal({ sku, onClose }: SKUDetailModalProps) {
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Lifecycle Stage */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-3">Lifecycle Stage</h3>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-full ${maturityColors[sku.maturityStage]} flex items-center justify-center text-white font-bold`}>
-                  {sku.daysInAssortment}
-                </div>
-                <div>
-                  <p className="font-medium text-dh-blue capitalize">{sku.maturityStage}</p>
-                  <p className="text-xs text-gray-500">Days in assortment</p>
-                </div>
-              </div>
-              <div className={`px-3 py-2 rounded-lg ${efficiencyColors[sku.efficiency]}`}>
-                <p className="text-sm font-medium capitalize">{sku.efficiency.replace('-', ' ')}</p>
-              </div>
-            </div>
+          {/* Status & Efficiency Row */}
+          <div className="flex items-center gap-4">
+            <span className={`inline-flex px-3 py-1.5 text-sm font-medium rounded-full ${statusStyle.bg} ${statusStyle.text}`}>
+              {statusStyle.label}
+            </span>
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${MATURITY_STYLES[sku.maturityStage].bg} ${MATURITY_STYLES[sku.maturityStage].text}`}>
+              {sku.maturityStage}
+            </span>
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${EFFICIENCY_STYLES[sku.efficiency]}`}>
+              {sku.efficiency.replace('-', ' ')}
+            </span>
           </div>
 
           {/* Performance Metrics */}
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-3">Performance Metrics</h3>
+            <h3 className="text-sm font-medium text-cp-color-text-secondary mb-3">Performance Metrics</h3>
             <div className="grid grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-dh-blue">{sku.weeklyUnitsSold}</p>
-                <p className="text-xs text-gray-500">Units/Week</p>
+              <div className="bg-cp-color-surface-secondary rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-cp-color-text-primary">{sku.weeklyUnitsSold.toLocaleString()}</p>
+                <p className="text-xs text-cp-color-text-tertiary">Units/Week</p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className={`text-2xl font-bold ${sku.availability >= 90 ? 'text-green-600' : 'text-amber-600'}`}>
+              <div className="bg-cp-color-surface-secondary rounded-lg p-4 text-center">
+                <p className={`text-2xl font-bold ${sku.availability >= 90 ? 'text-cp-color-text-success' : sku.availability >= 70 ? 'text-cp-color-text-warning' : 'text-cp-color-text-error'}`}>
                   {sku.availability}%
                 </p>
-                <p className="text-xs text-gray-500">Availability</p>
+                <p className="text-xs text-cp-color-text-tertiary">Availability</p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className={`text-2xl font-bold ${sku.daysOnHand <= 14 ? 'text-green-600' : sku.daysOnHand <= 30 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {sku.daysOnHand}
+              <div className="bg-cp-color-surface-secondary rounded-lg p-4 text-center">
+                <p className={`text-2xl font-bold ${sku.margin >= 30 ? 'text-cp-color-text-success' : 'text-cp-color-text-warning'}`}>
+                  {sku.margin}%
                 </p>
-                <p className="text-xs text-gray-500">Days on Hand</p>
+                <p className="text-xs text-cp-color-text-tertiary">Margin</p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className={`text-2xl font-bold ${sku.shrinkage <= 10 ? 'text-green-600' : 'text-red-600'}`}>
-                  {sku.shrinkage}%
-                </p>
-                <p className="text-xs text-gray-500">Shrinkage</p>
+              <div className="bg-cp-color-surface-secondary rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-cp-color-text-primary">{activeWarehouses.length}/{sku.warehouses.length}</p>
+                <p className="text-xs text-cp-color-text-tertiary">Warehouses</p>
               </div>
             </div>
           </div>
 
-          {/* Status & Service Level */}
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Current Status</h3>
-              <div className="flex items-center gap-2">
-                <StatusBadge status={sku.status} />
-                <span className="text-sm text-gray-500 capitalize">{sku.status.replace('-', ' ')}</span>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Service Level</h3>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${sku.serviceLevel >= 90 ? 'bg-green-500' : sku.serviceLevel >= 70 ? 'bg-amber-500' : 'bg-red-500'}`}
-                    style={{ width: `${sku.serviceLevel}%` }}
-                  />
+          {/* Warehouse Distribution */}
+          <div>
+            <h3 className="text-sm font-medium text-cp-color-text-secondary mb-3">Warehouse Distribution</h3>
+            <div className="space-y-2">
+              {sku.warehouses.map((wh) => (
+                <div
+                  key={wh.warehouse}
+                  className={`flex items-center justify-between p-3 rounded-lg border ${wh.inStock ? 'border-cp-color-border-primary bg-cp-color-surface-primary' : 'border-cp-color-border-primary bg-cp-color-surface-secondary'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${wh.inStock ? 'bg-cp-color-surface-success' : 'bg-cp-color-surface-error'}`} />
+                    <div>
+                      <p className="text-sm font-medium text-cp-color-text-primary">{wh.warehouse}</p>
+                      <p className="text-xs text-cp-color-text-tertiary">Updated {wh.lastUpdated}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {wh.inStock ? (
+                      <div>
+                        <p className="text-lg font-bold text-cp-color-text-primary">{wh.quantity.toLocaleString()}</p>
+                        <p className="text-xs text-cp-color-text-tertiary">units in stock</p>
+                      </div>
+                    ) : (
+                      <Badge variant="danger">Out of Stock</Badge>
+                    )}
+                  </div>
                 </div>
-                <span className="text-sm font-medium">{sku.serviceLevel}%</span>
-              </div>
+              ))}
             </div>
-          </div>
 
-          {/* Recommendation */}
-          {sku.recommendedAction && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-amber-800">Recommended Action</h4>
-                  <p className="text-sm text-amber-700 mt-1">{sku.recommendedAction.reason}</p>
-                  <p className="text-xs text-amber-600 mt-2">Impact: {sku.recommendedAction.estimatedImpact}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Clearance Discount */}
-          {sku.clearanceDiscount && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            {/* Total Stock Summary */}
+            <div className="mt-4 p-4 bg-cp-color-surface-brand-subtle rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-green-800">Clearance Recommended</h4>
-                  <p className="text-sm text-green-700">Optimal discount to maximize sales</p>
+                  <p className="text-sm font-medium text-cp-color-text-brand">Total Stock Across All Warehouses</p>
+                  <p className="text-xs text-cp-color-text-tertiary">{activeWarehouses.length} of {sku.warehouses.length} warehouses have stock</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-green-600">{sku.clearanceDiscount}%</p>
-                  <p className="text-xs text-green-600">discount</p>
-                </div>
+                <p className="text-3xl font-bold text-cp-color-text-primary">{totalStock.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div>
+            <h3 className="text-sm font-medium text-cp-color-text-secondary mb-3">Pricing</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-cp-color-surface-secondary rounded-lg p-4">
+                <p className="text-xs text-cp-color-text-tertiary mb-1">Cost Price</p>
+                <p className="text-xl font-bold text-cp-color-text-primary">AED {sku.costPrice.toFixed(2)}</p>
+              </div>
+              <div className="bg-cp-color-surface-secondary rounded-lg p-4">
+                <p className="text-xs text-cp-color-text-tertiary mb-1">Base Price</p>
+                <p className="text-xl font-bold text-cp-color-text-primary">AED {sku.basePrice.toFixed(2)}</p>
+              </div>
+              <div className="bg-cp-color-surface-secondary rounded-lg p-4">
+                <p className="text-xs text-cp-color-text-tertiary mb-1">Discount</p>
+                <p className="text-xl font-bold text-cp-color-text-primary">{sku.discount ? `${sku.discount}%` : '-'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Engine Signals */}
+          {sku.engineSignals.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-cp-color-text-secondary mb-3">Engine Signals</h3>
+              <div className="flex flex-wrap gap-2">
+                {sku.engineSignals.map((signal, i) => (
+                  <Badge key={i} variant="info">{signal}</Badge>
+                ))}
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 flex items-center justify-between">
+        <div className="p-6 border-t border-cp-color-border-primary flex items-center justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>Close</Button>
-          <div className="flex gap-2">
-            {sku.recommendedAction && (
-              <>
-                <Button variant="outline">Dismiss</Button>
-                <Button>Take Action</Button>
-              </>
-            )}
-          </div>
+          <Button variant="outline">View History</Button>
+          <Button>Edit SKU</Button>
         </div>
       </div>
     </div>

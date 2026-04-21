@@ -5,7 +5,6 @@ import { AssortmentCard } from '@/components/AssortmentCard';
 import { SAMPLE_ASSORTMENT_RECS } from '@/lib/sample-data';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import { QuickActions } from '@/components/QuickActions';
 import { useNotifications } from '@/lib/NotificationContext';
 
@@ -60,8 +59,8 @@ export default function AssortmentPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-dh-blue">Assortment Recommendations</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-cp-color-text-primary">Assortment Recommendations</h1>
+          <p className="text-cp-color-text-secondary mt-1">
             Choice Engine • {allRecommendations.length} opportunities identified
           </p>
         </div>
@@ -70,25 +69,25 @@ export default function AssortmentPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <p className="text-sm text-gray-500">Missing vs Competitors</p>
-          <p className="text-2xl font-bold text-dh-blue">23</p>
-          <p className="text-xs text-amber-600 mt-1">Carrefour, Lulu, Noon</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Missing vs Competitors</p>
+          <p className="text-2xl font-bold text-cp-color-text-primary">23</p>
+          <p className="text-xs text-cp-color-text-warning mt-1">Carrefour, Lulu, Noon</p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">High Search Demand</p>
-          <p className="text-2xl font-bold text-purple-600">12</p>
-          <p className="text-xs text-gray-400 mt-1">Unmet search volume</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">High Search Demand</p>
+          <p className="text-2xl font-bold text-cp-color-text-brand">12</p>
+          <p className="text-xs text-cp-color-text-tertiary mt-1">Unmet search volume</p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Est. Monthly Revenue</p>
-          <p className="text-2xl font-bold text-green-600">AED 48K</p>
-          <p className="text-xs text-gray-400 mt-1">If all recommendations added</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Est. Monthly Revenue</p>
+          <p className="text-2xl font-bold text-cp-color-text-success">AED 48K</p>
+          <p className="text-xs text-cp-color-text-tertiary mt-1">If all recommendations added</p>
         </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Avg Confidence</p>
-          <p className="text-2xl font-bold text-dh-blue">84%</p>
-          <p className="text-xs text-gray-400 mt-1">Across all recommendations</p>
+        <Card variant="outlined" className="p-4">
+          <p className="text-sm text-cp-color-text-secondary">Avg Confidence</p>
+          <p className="text-2xl font-bold text-cp-color-text-primary">84%</p>
+          <p className="text-xs text-cp-color-text-tertiary mt-1">Across all recommendations</p>
         </Card>
       </div>
 
@@ -102,13 +101,13 @@ export default function AssortmentPage() {
               onClick={() => setActiveSegment(segment.key)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
                 isActive
-                  ? 'bg-dh-blue text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                  ? 'bg-cp-color-surface-brand text-cp-color-text-inverse'
+                  : 'bg-cp-color-surface-primary text-cp-color-text-secondary hover:bg-cp-color-surface-secondary border border-cp-color-border-primary'
               }`}
             >
               {segment.label}
               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                isActive ? 'bg-white/20' : 'bg-gray-100'
+                isActive ? 'bg-white/20' : 'bg-cp-color-surface-secondary'
               }`}>
                 {segment.count}
               </span>
@@ -134,7 +133,7 @@ export default function AssortmentPage() {
 
       {/* Recently Added */}
       {acceptedSKUs.length > 0 && (
-        <Card>
+        <Card variant="outlined" className="p-4">
           <CardHeader title="Recently Accepted" subtitle={`${acceptedSKUs.length} SKUs added to pipeline`} />
           <div className="flex flex-wrap gap-2">
             {acceptedSKUs.map((sku) => (

@@ -3,7 +3,7 @@
 interface FilterChipsProps {
   activeFilter: string;
   onFilterChange: (filter: string) => void;
-  counts: Record<string, number>;
+  counts: { all: number; active: number; 'on-hold': number; discontinued: number; retired: number };
 }
 
 // Filter options based on DMart Lifecycle Strategy SKU statuses
@@ -26,11 +26,11 @@ export function FilterChips({ activeFilter, onFilterChange, counts }: FilterChip
             onClick={() => onFilterChange(filter.key)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition ${
               isActive
-                ? 'bg-dh-blue text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
+                ? 'bg-cp-color-surface-brand text-cp-color-text-inverse'
+                : 'bg-cp-color-surface-primary text-cp-color-text-secondary hover:bg-cp-color-surface-secondary border border-cp-color-border-primary'
             }`}
           >
-            {filter.label} <span className="text-xs opacity-70">({counts[filter.key] || 0})</span>
+            {filter.label} <span className="text-xs opacity-70">({counts[filter.key as keyof typeof counts] || 0})</span>
           </button>
         );
       })}

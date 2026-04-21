@@ -10,15 +10,15 @@ interface KPICardProps {
 
 export function KPICard({ label, value, delta, direction, subtitle }: KPICardProps) {
   const isPositive = direction === 'up';
-  const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
+  const colorClass = isPositive ? 'text-cp-color-text-success' : 'text-cp-color-text-error';
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm">
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-dh-blue">{value}</p>
+    <div className="bg-cp-color-surface-primary border border-cp-color-border-primary rounded-xl p-5">
+      <p className="text-sm text-cp-color-text-secondary mb-1">{label}</p>
+      <p className="text-2xl font-bold text-cp-color-text-primary">{value}</p>
       <p className={`text-sm font-medium mt-1 ${colorClass}`}>{delta}</p>
       {subtitle && (
-        <p className="text-xs text-gray-400 mt-2">{subtitle}</p>
+        <p className="text-xs text-cp-color-text-tertiary mt-2">{subtitle}</p>
       )}
     </div>
   );

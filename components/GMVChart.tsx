@@ -5,8 +5,8 @@ import { SAMPLE_GMV_TREND } from '@/lib/sample-data';
 
 export function GMVChart() {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm">
-      <h3 className="text-sm font-medium text-gray-500 mb-4">GMV Trend (7 days)</h3>
+    <div className="bg-cp-color-surface-primary border border-cp-color-border-primary rounded-xl p-5">
+      <h3 className="text-sm font-medium text-cp-color-text-secondary mb-4">GMV Trend (UAE - Real Data from BigQuery)</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={SAMPLE_GMV_TREND}>
@@ -14,31 +14,31 @@ export function GMVChart() {
               dataKey="day"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: '#6b7280' }}
+              tick={{ fontSize: 12, fill: 'var(--cp-color-text-secondary)' }}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: '#6b7280' }}
-              tickFormatter={(value) => `${value / 1000}K`}
+              tick={{ fontSize: 12, fill: 'var(--cp-color-text-secondary)' }}
+              tickFormatter={(value) => `AED ${(value / 1000000).toFixed(1)}M`}
             />
             <Tooltip
               formatter={(value) => {
                 if (typeof value === 'number') {
-                  return [`AED ${value.toLocaleString()}`, 'GMV'];
+                  return [`AED ${(value / 1000000).toFixed(2)}M`, 'GMV'];
                 }
                 return [String(value), 'GMV'];
               }}
               contentStyle={{
-                backgroundColor: '#131732',
+                backgroundColor: 'var(--cp-color-surface-primary)',
                 border: 'none',
                 borderRadius: '8px',
-                color: 'white',
+                color: 'var(--cp-color-text-inverse)',
               }}
             />
             <Bar
               dataKey="value"
-              fill="#D61F26"
+              fill="var(--cp-color-surface-brand)"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

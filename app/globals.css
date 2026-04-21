@@ -8,3 +8,115 @@
   --color-dh-purple: #4629FF;
   --color-dh-gray: #F5F5F6;
 }
+
+/* CAPE Design System Tokens - Talabat Light Theme */
+:root {
+  /* Surface colors */
+  --cp-color-surface-primary: #ffffff;
+  --cp-color-surface-secondary: #f5f5f6;
+  --cp-color-surface-brand: #ffc520;
+  --cp-color-surface-brand-subtle: #fff8e6;
+  --cp-color-surface-success: #28a745;
+  --cp-color-surface-success-subtle: #d4edda;
+  --cp-color-surface-warning: #ffc107;
+  --cp-color-surface-warning-subtle: #fff3cd;
+  --cp-color-surface-error: #dc3545;
+  --cp-color-surface-error-subtle: #f8d7da;
+  --cp-color-surface-information: #17a2b8;
+  --cp-color-surface-information-subtle: #d1ecf1;
+
+  /* Text colors */
+  --cp-color-text-primary: #131732;
+  --cp-color-text-secondary: #6b7280;
+  --cp-color-text-tertiary: #9ca3af;
+  --cp-color-text-inverse: #ffffff;
+  --cp-color-text-brand: #c49700;
+  --cp-color-text-success: #155724;
+  --cp-color-text-warning: #856404;
+  --cp-color-text-error: #721c24;
+  --cp-color-text-information: #0c5460;
+
+  /* Background colors */
+  --cp-color-background-default: #f5f5f6;
+
+  /* Border colors */
+  --cp-color-border-primary: #e5e7eb;
+
+  /* Sidebar */
+  --sidebar-bg: #131732;
+  --sidebar-text: #ffffff;
+}
+
+/* Dark Mode */
+.dark {
+  /* Surface colors - Dark Theme */
+  --cp-color-surface-primary: #1a1a2e;
+  --cp-color-surface-secondary: #252542;
+  --cp-color-surface-brand: #ffc520;
+  --cp-color-surface-brand-subtle: #3d3415;
+  --cp-color-surface-success: #28a745;
+  --cp-color-surface-success-subtle: #1a3d1a;
+  --cp-color-surface-warning: #ffc107;
+  --cp-color-surface-warning-subtle: #3d3415;
+  --cp-color-surface-error: #dc3545;
+  --cp-color-surface-error-subtle: #3d1a1a;
+  --cp-color-surface-information: #17a2b8;
+  --cp-color-surface-information-subtle: #1a2d3d;
+
+  /* Text colors - Dark Theme */
+  --cp-color-text-primary: #ffffff;
+  --cp-color-text-secondary: #a1a1aa;
+  --cp-color-text-tertiary: #71717a;
+  --cp-color-text-inverse: #131732;
+  --cp-color-text-brand: #ffc520;
+  --cp-color-text-success: #4ade80;
+  --cp-color-text-warning: #fbbf24;
+  --cp-color-text-error: #f87171;
+  --cp-color-text-information: #38bdf8;
+
+  /* Background colors */
+  --cp-color-background-default: #131732;
+
+  /* Border colors */
+  --cp-color-border-primary: #374151;
+
+  /* Sidebar */
+  --sidebar-bg: #0d0d1a;
+  --sidebar-text: #ffffff;
+}
+
+/* Utility classes for CAPE colors */
+.bg-cp-color-surface-primary { background-color: var(--cp-color-surface-primary); }
+.bg-cp-color-surface-secondary { background-color: var(--cp-color-surface-secondary); }
+.bg-cp-color-surface-brand { background-color: var(--cp-color-surface-brand); }
+.bg-cp-color-surface-brand-subtle { background-color: var(--cp-color-surface-brand-subtle); }
+.bg-cp-color-surface-success { background-color: var(--cp-color-surface-success); }
+.bg-cp-color-surface-success-subtle { background-color: var(--cp-color-surface-success-subtle); }
+.bg-cp-color-surface-warning { background-color: var(--cp-color-surface-warning); }
+.bg-cp-color-surface-warning-subtle { background-color: var(--cp-color-surface-warning-subtle); }
+.bg-cp-color-surface-error { background-color: var(--cp-color-surface-error); }
+.bg-cp-color-surface-error-subtle { background-color: var(--cp-color-surface-error-subtle); }
+.bg-cp-color-surface-information { background-color: var(--cp-color-surface-information); }
+.bg-cp-color-surface-information-subtle { background-color: var(--cp-color-surface-information-subtle); }
+.bg-cp-color-background-default { background-color: var(--cp-color-background-default); }
+
+.text-cp-color-text-primary { color: var(--cp-color-text-primary); }
+.text-cp-color-text-secondary { color: var(--cp-color-text-secondary); }
+.text-cp-color-text-tertiary { color: var(--cp-color-text-tertiary); }
+.text-cp-color-text-inverse { color: var(--cp-color-text-inverse); }
+.text-cp-color-text-brand { color: var(--cp-color-text-brand); }
+.text-cp-color-text-success { color: var(--cp-color-text-success); }
+.text-cp-color-text-warning { color: var(--cp-color-text-warning); }
+.text-cp-color-text-error { color: var(--cp-color-text-error); }
+.text-cp-color-text-information { color: var(--cp-color-text-information); }
+
+.border-cp-color-border-primary { border-color: var(--cp-color-border-primary); }
+
+/* Sidebar utilities */
+.bg-sidebar { background-color: var(--sidebar-bg); }
+.text-sidebar { color: var(--sidebar-text); }
+
+/* Border styles */
+.border { border-width: 1px; border-style: solid; }
+.border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+.border-t { border-top-width: 1px; border-top-style: solid; }

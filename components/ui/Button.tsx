@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, ButtonHTMLAttributes } from 'react';
+import type { ReactNode, ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -11,11 +11,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles = {
-  primary: 'bg-dh-red text-white hover:bg-red-700',
-  secondary: 'bg-dh-blue text-white hover:bg-blue-900',
-  outline: 'border border-dh-red text-dh-red hover:bg-red-50',
-  ghost: 'text-gray-600 hover:bg-gray-100',
-  danger: 'bg-red-600 text-white hover:bg-red-700',
+  primary: 'bg-cp-color-surface-brand text-cp-color-text-inverse hover:opacity-90',
+  secondary: 'bg-cp-color-surface-primary text-cp-color-text-primary hover:bg-cp-color-surface-secondary',
+  outline: 'border border-cp-color-surface-brand text-cp-color-text-brand hover:bg-cp-color-surface-brand-subtle',
+  ghost: 'text-cp-color-text-secondary hover:bg-cp-color-surface-secondary',
+  danger: 'bg-cp-color-surface-error text-cp-color-text-inverse hover:opacity-90',
 };
 
 const sizeStyles = {
