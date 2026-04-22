@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { NotificationPanel } from "@/components/NotificationPanel";
+import { Header } from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "CatMan Cockpit - Delivery Hero",
@@ -83,19 +82,7 @@ export default function RootLayout({
 
             {/* Main content */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Header */}
-              <header className="bg-cp-color-surface-primary border-b border-cp-color-border-primary px-6 py-3 flex items-center justify-between gap-6">
-                <div className="flex items-center gap-4 shrink-0">
-                  <span className="text-lg font-semibold text-cp-color-text-primary">CatMan Cockpit</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <ThemeToggle />
-                  <NotificationPanel />
-                  <button className="w-8 h-8 bg-cp-color-surface-brand rounded-full flex items-center justify-center text-sm font-medium text-dh-blue">
-                    VP
-                  </button>
-                </div>
-              </header>
+              <Header />
 
               <main className="flex-1 overflow-y-auto p-6 bg-cp-color-background-default">
                 {children}
