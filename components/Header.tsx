@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { IconArc } from './icons/IconArc';
 import { DH_ENTITIES } from '@/lib/sample-data';
 import { DateRangePicker } from './ui/DatePicker';
 import { NotificationPanel } from './NotificationPanel';
@@ -17,9 +16,11 @@ export function Header() {
   return (
     <header className="bg-dh-blue text-white px-6 py-3 flex items-center justify-between gap-6">
       {/* Logo & Brand */}
-      <div className="flex items-center gap-4 shrink-0">
-        <IconArc size={40} />
-        <span className="text-lg font-semibold hidden sm:inline">CatMan Cockpit</span>
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+          <span className="text-sm font-bold text-dh-blue">DH</span>
+        </div>
+        <span className="text-lg font-semibold">CatMan Cockpit</span>
       </div>
 
       {/* Category Selector */}
