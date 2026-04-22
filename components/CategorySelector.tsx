@@ -30,19 +30,22 @@ export function CategorySelector({ selectedL0, selectedL1, selectedL2, onL0Selec
   }, [isOpen]);
 
   const handleL0Click = (l0Id: string) => {
+    const l1Categories = getL1CategoriesForL0(l0Id);
+
     if (expandedL0 === l0Id) {
+      // Collapse if already expanded
       setExpandedL0(null);
       setExpandedL1(null);
     } else {
+      // Expand to show L1 categories
       setExpandedL0(l0Id);
       setExpandedL1(null);
     }
+
+    // Select L0 and auto-select first L1/L2
     onL0Select(l0Id);
-    // Auto-select first L1 when L0 is selected
-    const l1Categories = getL1CategoriesForL0(l0Id);
     if (l1Categories.length > 0) {
       onL1Select(l1Categories[0].id);
-      // Auto-select first L2
       if (l1Categories[0].l2Categories.length > 0) {
         onL2Select(l1Categories[0].l2Categories[0].id);
       } else {
@@ -52,25 +55,35 @@ export function CategorySelector({ selectedL0, selectedL1, selectedL2, onL0Selec
       onL1Select('all');
       onL2Select('all');
     }
-    setIsOpen(false);
+
+    // Only close if there's a single L1 with single/no L2 (nothing to drill into)
+    const hasMultipleL1 = l1Categories.length > 1;
+    const hasL2ToExplore = l1Categories.some(l1 => l1.l2Categories.length > 1);
+    if (!hasMultipleL1 && !hasL2ToExplore) {
+      setIsOpen(false);
+    }
   };
 
   const handleL1Click = (l1Id: string, l0Id: string) => {
+    const l1Category = getL1CategoryById(l1Id);
+
     if (expandedL1 === l1Id) {
       setExpandedL1(null);
     } else {
       setExpandedL1(l1Id);
     }
+
     onL0Select(l0Id);
     onL1Select(l1Id);
-    // Auto-select first L2 when L1 is selected
-    const l1Category = getL1CategoryById(l1Id);
+
+    // Auto-select first L2
     if (l1Category && l1Category.l2Categories.length > 0) {
       onL2Select(l1Category.l2Categories[0].id);
     } else {
       onL2Select('all');
     }
-    // Don't close dropdown if there are L2 categories
+
+    // Only close if there are no L2 categories to explore
     if (!l1Category || l1Category.l2Categories.length <= 1) {
       setIsOpen(false);
     }
@@ -169,7 +182,7 @@ export function CategorySelector({ selectedL0, selectedL1, selectedL2, onL0Selec
                 </button>
 
                 {/* L1 Categories */}
-                {expandedL0 === l0.id && l0.l1Categories.length > 1 && (
+                {expandedL0 === l0.id && (
                   <div className="bg-cp-color-surface-secondary/30">
                     {l0.l1Categories.map((l1) => (
                       <div key={l1.id}>
