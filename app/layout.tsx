@@ -21,7 +21,13 @@ export default function RootLayout({
           <div className="flex h-screen overflow-hidden">
             {/* Sidebar */}
             <aside className="w-64 shrink-0 bg-sidebar text-sidebar">
-              <nav className="p-4 pt-6">
+              <div className="flex items-center gap-3 p-4 border-b border-white/10">
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-sm font-bold text-dh-blue">DH</span>
+                </div>
+                <span className="font-semibold text-sidebar">CatMan Cockpit</span>
+              </div>
+              <nav className="p-4">
                 <div className="mb-6">
                   <h3 className="text-xs font-medium text-white/50 uppercase tracking-wider mb-2">Overview</h3>
                   <Link href="/" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/10 text-sidebar">
