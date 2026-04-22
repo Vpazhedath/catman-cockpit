@@ -50,7 +50,7 @@ export default function AssortmentPage() {
       title: 'SKU Added to Pipeline',
       message: `${skuName} has been added to the assortment pipeline`,
       actionUrl: '/sku-tower',
-      actionLabel: 'View in SKU Tower',
+      actionLabel: 'View in SKU Control Tower',
     });
   };
 
@@ -59,7 +59,7 @@ export default function AssortmentPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-cp-color-text-primary">Assortment Recommendations</h1>
+          <h1 className="text-2xl font-bold text-cp-color-text-primary">Choice</h1>
           <p className="text-cp-color-text-secondary mt-1">
             Choice Engine • {allRecommendations.length} opportunities identified
           </p>

@@ -26,10 +26,10 @@ npm run lint     # Run Next.js linter
 4. **Catalog + External Data** - Foundational SKU data + competitor/NIelsen/search signals
 
 **Tabs/Routes:**
-- `/` - Performance (KPIs, GMV chart, engine signals) - **built**
-- `/sku-tower` - SKU table with filters and status badges - **built**
+- `/` - Category Pulse (KPIs, GMV chart, engine signals) - **built**
+- `/sku-tower` - SKU Control Tower with filters and status badges - **built**
 - `/assortment` - Choice Engine recommendations - **built**
-- `/price` - Price & Promo (Affordability Engine) - **stub**
+- `/price` - Affordability Engine - **stub**
 - `/lifecycle` - SKU Lifecycle Engine - **stub**
 - `/profitability` - Profitability Engine - **stub**
 

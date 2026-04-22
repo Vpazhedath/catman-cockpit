@@ -280,7 +280,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU001',
     name: 'Almarai Full Cream 1L',
-    category: 'Dairy',
+    category: 'dairy-chilled-eggs',
     supplier: 'Almarai',
     daysInAssortment: 45,
     maturityStage: 'probation',
@@ -301,7 +301,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU002',
     name: 'Nestle Pure Life 1.5L',
-    category: 'Water',
+    category: 'beverages',
     supplier: 'Nestle',
     daysInAssortment: 120,
     maturityStage: 'mature',
@@ -322,7 +322,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU003',
     name: 'Lacnor Orange Juice 1L',
-    category: 'Juices',
+    category: 'beverages',
     supplier: 'Lacnor',
     daysInAssortment: 95,
     maturityStage: 'mature',
@@ -343,7 +343,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU004',
     name: 'Barakat Fresh Milk 2L',
-    category: 'Dairy',
+    category: 'dairy-chilled-eggs',
     supplier: 'Barakat',
     daysInAssortment: 15,
     maturityStage: 'new',
@@ -364,7 +364,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU005',
     name: 'Almarai Laban 200ml',
-    category: 'Dairy',
+    category: 'dairy-chilled-eggs',
     supplier: 'Almarai',
     daysInAssortment: 180,
     maturityStage: 'mature',
@@ -385,7 +385,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU006',
     name: 'Premium Greek Yogurt 500g',
-    category: 'Dairy',
+    category: 'dairy-chilled-eggs',
     supplier: 'Local Supplier',
     daysInAssortment: 35,
     maturityStage: 'probation',
@@ -406,7 +406,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU007',
     name: 'Red Bull 250ml',
-    category: 'Energy Drinks',
+    category: 'beverages',
     supplier: 'Red Bull',
     daysInAssortment: 200,
     maturityStage: 'mature',
@@ -427,7 +427,7 @@ export const SAMPLE_LIFECYCLE_SKUS: SKULifecycleState[] = [
   {
     skuId: 'SKU008',
     name: 'Organic Oat Milk 1L',
-    category: 'Dairy Alternatives',
+    category: 'dairy-chilled-eggs',
     supplier: 'NewCo',
     daysInAssortment: 25,
     maturityStage: 'new',

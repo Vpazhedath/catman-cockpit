@@ -93,7 +93,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-001',
     name: 'Almarai Full Cream Milk 1L',
-    category: 'Dairy & Cheese',
+    category: 'dairy-chilled-eggs',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -116,7 +116,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-002',
     name: 'Almarai Laban 500ml',
-    category: 'Dairy & Cheese',
+    category: 'dairy-chilled-eggs',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -139,7 +139,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-003',
     name: 'Nadec Fresh Milk 2L',
-    category: 'Dairy & Cheese',
+    category: 'dairy-chilled-eggs',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -162,7 +162,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-004',
     name: 'Almarai Greek Yogurt 400g',
-    category: 'Dairy & Cheese',
+    category: 'dairy-chilled-eggs',
     status: 'active',
     maturityStage: 'probation',
     efficiency: 'efficient',
@@ -185,7 +185,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-005',
     name: 'Kerrygold Butter 227g',
-    category: 'Dairy & Cheese',
+    category: 'dairy-chilled-eggs',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -210,7 +210,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-006',
     name: 'Nestle Pure Life 1.5L',
-    category: 'Beverages',
+    category: 'beverages',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -233,7 +233,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-007',
     name: 'Lacnor Orange Juice 1L',
-    category: 'Beverages',
+    category: 'beverages',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -256,7 +256,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-008',
     name: 'Almarai Fresh Juice 1L',
-    category: 'Beverages',
+    category: 'beverages',
     status: 'active',
     maturityStage: 'probation',
     efficiency: 'efficient',
@@ -279,7 +279,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-009',
     name: 'Red Bull 250ml',
-    category: 'Beverages',
+    category: 'beverages',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -302,7 +302,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-010',
     name: 'Coca-Cola 330ml Can',
-    category: 'Beverages',
+    category: 'beverages',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -325,7 +325,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-011',
     name: 'Pepsi 330ml Can',
-    category: 'Beverages',
+    category: 'beverages',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -348,7 +348,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-012',
     name: 'Mountain Dew 500ml',
-    category: 'Beverages',
+    category: 'beverages',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -373,7 +373,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-013',
     name: 'Cadbury Dairy Milk 45g',
-    category: 'Snacks & Chocolate',
+    category: 'snacks',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -396,7 +396,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-014',
     name: 'Lays Classic Chips 150g',
-    category: 'Snacks & Chocolate',
+    category: 'snacks',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -419,7 +419,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-015',
     name: 'Kinder Chocolate 100g',
-    category: 'Snacks & Chocolate',
+    category: 'snacks',
     status: 'active',
     maturityStage: 'probation',
     efficiency: 'efficient',
@@ -442,7 +442,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-016',
     name: 'Galaxy Chocolate 45g',
-    category: 'Snacks & Chocolate',
+    category: 'snacks',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -465,7 +465,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-017',
     name: 'Pringles Original 110g',
-    category: 'Snacks & Chocolate',
+    category: 'snacks',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -488,7 +488,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-018',
     name: 'Doritos Nacho Cheese 150g',
-    category: 'Snacks & Chocolate',
+    category: 'snacks',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -513,7 +513,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-019',
     name: 'Dove Body Lotion 400ml',
-    category: 'Personal Care',
+    category: 'personal-care-baby-health',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -536,7 +536,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-020',
     name: 'Colgate Toothpaste 100ml',
-    category: 'Personal Care',
+    category: 'personal-care-baby-health',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -559,7 +559,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-021',
     name: 'Head & Shoulders Shampoo 400ml',
-    category: 'Personal Care',
+    category: 'personal-care-baby-health',
     status: 'active',
     maturityStage: 'review',
     efficiency: 'slow-mover',
@@ -582,7 +582,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-022',
     name: 'Nivea Body Cream 250ml',
-    category: 'Personal Care',
+    category: 'personal-care-baby-health',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -607,7 +607,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-023',
     name: 'Ariel Detergent 3kg',
-    category: 'Household',
+    category: 'home-pet',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -630,7 +630,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-024',
     name: 'Tide Detergent 2kg',
-    category: 'Household',
+    category: 'home-pet',
     status: 'active',
     maturityStage: 'probation',
     efficiency: 'efficient',
@@ -653,7 +653,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-025',
     name: 'Clorox Bleach 1L',
-    category: 'Household',
+    category: 'home-pet',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -678,7 +678,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-026',
     name: 'Frozen Chicken Nuggets 500g',
-    category: 'Frozen Foods',
+    category: 'frozen',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -701,7 +701,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-027',
     name: 'Frozen Peas 500g',
-    category: 'Frozen Foods',
+    category: 'frozen',
     status: 'active',
     maturityStage: 'mature',
     efficiency: 'efficient',
@@ -726,7 +726,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-028',
     name: 'Organic Almond Milk 1L',
-    category: 'Dairy & Cheese',
+    category: 'dairy-chilled-eggs',
     status: 'on-hold',
     maturityStage: 'review',
     efficiency: 'slow-mover',
@@ -749,7 +749,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-029',
     name: 'Premium Saffron 1g',
-    category: 'Spices',
+    category: 'packaged-foods',
     status: 'on-hold',
     maturityStage: 'review',
     efficiency: 'slow-mover',
@@ -772,7 +772,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-030',
     name: 'Imported Olive Oil 500ml',
-    category: 'Cooking Ingredients',
+    category: 'packaged-foods',
     status: 'on-hold',
     maturityStage: 'probation',
     efficiency: 'slow-mover',
@@ -797,7 +797,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-031',
     name: 'Local Brand Chips 100g',
-    category: 'Snacks',
+    category: 'snacks',
     status: 'discontinued',
     maturityStage: 'phase-out',
     efficiency: 'zero-mover',
@@ -820,7 +820,7 @@ export const SAMPLE_SKUS: SKUWithWarehouses[] = [
   {
     skuId: 'TB-AE-032',
     name: 'Generic Soap Bar',
-    category: 'Personal Care',
+    category: 'personal-care-baby-health',
     status: 'discontinued',
     maturityStage: 'phase-out',
     efficiency: 'zero-mover',

@@ -32,7 +32,7 @@ const RECENT_ACTIVITY = [
   { action: 'Stock alert', item: 'Nestle Pure Life 1.5L', time: '2 hours ago', type: 'alert' },
 ];
 
-export default function PerformancePage() {
+export default function CategoryPulsePage() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}

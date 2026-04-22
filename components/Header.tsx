@@ -7,9 +7,11 @@ import { DateRangePicker } from './ui/DatePicker';
 import { NotificationPanel } from './NotificationPanel';
 import { CommandPalette } from './CommandPalette';
 import { UserDropdown } from './UserDropdown';
+import { CategorySelector } from './CategorySelector';
+import { useAppContext } from '@/lib/AppContext';
 
 export function Header() {
-  const [selectedEntity, setSelectedEntity] = useState('Talabat UAE');
+  const { state, setEntity, setCategoryL0, setCategoryL1, setCategoryL2 } = useAppContext();
   const [isEntityOpen, setIsEntityOpen] = useState(false);
 
   return (
@@ -20,6 +22,16 @@ export function Header() {
         <span className="text-lg font-semibold hidden sm:inline">CatMan Cockpit</span>
       </div>
 
+      {/* Category Selector */}
+      <CategorySelector
+        selectedL0={state.categoryL0}
+        selectedL1={state.categoryL1}
+        selectedL2={state.categoryL2}
+        onL0Select={setCategoryL0}
+        onL1Select={setCategoryL1}
+        onL2Select={setCategoryL2}
+      />
+
       {/* Command Palette */}
       <CommandPalette />
 
@@ -29,7 +41,7 @@ export function Header() {
           onClick={() => setIsEntityOpen(!isEntityOpen)}
           className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/15 transition"
         >
-          <span className="hidden md:inline">{selectedEntity}</span>
+          <span className="hidden md:inline">{state.entity}</span>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -41,11 +53,11 @@ export function Header() {
               <button
                 key={entity}
                 onClick={() => {
-                  setSelectedEntity(entity);
+                  setEntity(entity);
                   setIsEntityOpen(false);
                 }}
                 className={`w-full text-left px-4 py-2 hover:bg-dh-gray transition ${
-                  selectedEntity === entity ? 'font-medium text-dh-red' : ''
+                  state.entity === entity ? 'font-medium text-dh-red' : ''
                 }`}
               >
                 {entity}

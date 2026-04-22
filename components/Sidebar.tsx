@@ -7,20 +7,20 @@ const NAV_ITEMS = [
   {
     section: 'Overview',
     items: [
-      { name: 'Performance', href: '/', icon: 'chart' },
+      { name: 'Category Pulse', href: '/', icon: 'chart' },
     ],
   },
   {
     section: 'SKU Management',
     items: [
-      { name: 'SKU Tower', href: '/sku-tower', icon: 'grid' },
-      { name: 'Assortment', href: '/assortment', icon: 'plus-circle' },
+      { name: 'SKU Control Tower', href: '/sku-tower', icon: 'grid' },
+      { name: 'Choice', href: '/assortment', icon: 'plus-circle' },
     ],
   },
   {
     section: 'Engines',
     items: [
-      { name: 'Price & Promo', href: '/price', icon: 'tag' },
+      { name: 'Affordability', href: '/price', icon: 'tag' },
       { name: 'Lifecycle', href: '/lifecycle', icon: 'refresh' },
       { name: 'Profitability', href: '/profitability', icon: 'dollar' },
     ],

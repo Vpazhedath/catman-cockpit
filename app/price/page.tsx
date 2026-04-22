@@ -11,14 +11,14 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } f
 
 // Sample competitor price data
 const COMPETITOR_PRICES = [
-  { sku: 'Almarai Full Cream 1L', ourPrice: 7.50, carrefour: 7.25, lulu: 7.50, noon: 7.75, gap: '+3%', status: 'competitive', category: 'Dairy' },
-  { sku: 'Lacnor Orange Juice 1L', ourPrice: 6.00, carrefour: 5.50, lulu: 5.75, noon: 6.25, gap: '+9%', status: 'high', category: 'Juices' },
-  { sku: 'Nestle Pure Life 1.5L', ourPrice: 2.00, carrefour: 1.75, lulu: 1.85, noon: 2.10, gap: '+14%', status: 'high', category: 'Water' },
-  { sku: 'Coca-Cola 330ml Can', ourPrice: 3.25, carrefour: 3.50, lulu: 3.25, noon: 3.50, gap: '-7%', status: 'low', category: 'Carbonated' },
-  { sku: 'Red Bull 250ml', ourPrice: 7.00, carrefour: 6.50, lulu: 6.75, noon: 7.25, gap: '+8%', status: 'high', category: 'Energy' },
-  { sku: 'Barakat Fresh Milk 2L', ourPrice: 11.00, carrefour: 10.50, lulu: 11.00, noon: 11.50, gap: '+5%', status: 'competitive', category: 'Dairy' },
-  { sku: 'Almarai Laban 200ml', ourPrice: 1.80, carrefour: 1.75, lulu: 1.80, noon: 1.90, gap: '+3%', status: 'competitive', category: 'Dairy' },
-  { sku: 'Sunkist Lemon 330ml', ourPrice: 3.50, carrefour: 3.25, lulu: 3.50, noon: 3.75, gap: '+8%', status: 'high', category: 'Carbonated' },
+  { sku: 'Almarai Full Cream 1L', ourPrice: 7.50, carrefour: 7.25, lulu: 7.50, noon: 7.75, gap: '+3%', status: 'competitive', category: 'dairy-chilled-eggs' },
+  { sku: 'Lacnor Orange Juice 1L', ourPrice: 6.00, carrefour: 5.50, lulu: 5.75, noon: 6.25, gap: '+9%', status: 'high', category: 'beverages' },
+  { sku: 'Nestle Pure Life 1.5L', ourPrice: 2.00, carrefour: 1.75, lulu: 1.85, noon: 2.10, gap: '+14%', status: 'high', category: 'beverages' },
+  { sku: 'Coca-Cola 330ml Can', ourPrice: 3.25, carrefour: 3.50, lulu: 3.25, noon: 3.50, gap: '-7%', status: 'low', category: 'beverages' },
+  { sku: 'Red Bull 250ml', ourPrice: 7.00, carrefour: 6.50, lulu: 6.75, noon: 7.25, gap: '+8%', status: 'high', category: 'beverages' },
+  { sku: 'Barakat Fresh Milk 2L', ourPrice: 11.00, carrefour: 10.50, lulu: 11.00, noon: 11.50, gap: '+5%', status: 'competitive', category: 'dairy-chilled-eggs' },
+  { sku: 'Almarai Laban 200ml', ourPrice: 1.80, carrefour: 1.75, lulu: 1.80, noon: 1.90, gap: '+3%', status: 'competitive', category: 'dairy-chilled-eggs' },
+  { sku: 'Sunkist Lemon 330ml', ourPrice: 3.50, carrefour: 3.25, lulu: 3.50, noon: 3.75, gap: '+8%', status: 'high', category: 'beverages' },
 ];
 
 const PROMO_RECOMMENDATIONS = [
@@ -82,7 +82,7 @@ export default function PricePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-cp-color-text-primary">Price & Promo</h1>
+          <h1 className="text-2xl font-bold text-cp-color-text-primary">Affordability</h1>
           <p className="text-cp-color-text-secondary mt-1">Affordability Engine • Competitor monitoring & promo recommendations</p>
         </div>
         <div className="flex items-center gap-3">

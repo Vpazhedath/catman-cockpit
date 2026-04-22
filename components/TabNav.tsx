@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { name: 'Performance', href: '/' },
+  { name: 'Category Pulse', href: '/' },
   { name: 'SKU Control Tower', href: '/sku-tower' },
-  { name: 'Assortment', href: '/assortment' },
-  { name: 'Price & Promo', href: '/price' },
+  { name: 'Choice', href: '/assortment' },
+  { name: 'Affordability', href: '/price' },
   { name: 'Lifecycle', href: '/lifecycle' },
   { name: 'Profitability', href: '/profitability' },
 ];

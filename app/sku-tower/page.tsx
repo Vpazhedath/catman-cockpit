@@ -7,7 +7,7 @@ import { SAMPLE_SKUS, RELEVANT_SKUS, SKUWithWarehouses } from '@/lib/sample-data
 import { SKUDetailModal } from '@/components/modals/SKUDetailModal';
 import { Button } from '@/components/ui/Button';
 
-export default function SKUTowerPage() {
+export default function SKUControlTowerPage() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');

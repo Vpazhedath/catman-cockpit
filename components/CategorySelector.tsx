@@ -1,36 +1,125 @@
 'use client';
 
-import { useState } from 'react';
-
-const CATEGORIES = [
-  { id: 'all', name: 'All Categories', icon: '🏠' },
-  { id: 'beverages', name: 'Beverages & Dairy', icon: '🥛' },
-  { id: 'snacks', name: 'Snacks & Confectionery', icon: '🍫' },
-  { id: 'fresh', name: 'Fresh & Frozen', icon: '🥬' },
-  { id: 'grocery', name: 'Grocery & Staples', icon: '🛒' },
-  { id: 'personal', name: 'Personal Care', icon: '🧴' },
-  { id: 'household', name: 'Household', icon: '🧹' },
-];
+import { useState, useEffect } from 'react';
+import { L0_CATEGORIES, CATEGORY_ICONS, getL1CategoriesForL0, getL2CategoriesForL1, getL1CategoryById, getL0CategoryById, getL2CategoryById } from '@/lib/categories';
 
 interface CategorySelectorProps {
-  selected: string;
-  onSelect: (id: string) => void;
+  selectedL0: string;
+  selectedL1: string;
+  selectedL2: string;
+  onL0Select: (l0: string) => void;
+  onL1Select: (l1: string) => void;
+  onL2Select: (l2: string) => void;
 }
 
-export function CategorySelector({ selected, onSelect }: CategorySelectorProps) {
+export function CategorySelector({ selectedL0, selectedL1, selectedL2, onL0Select, onL1Select, onL2Select }: CategorySelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedL0, setExpandedL0] = useState<string | null>(null);
+  const [expandedL1, setExpandedL1] = useState<string | null>(null);
 
-  const selectedCategory = CATEGORIES.find(c => c.id === selected) || CATEGORIES[0];
+  const selectedL0Category = getL0CategoryById(selectedL0);
+  const selectedL1Category = getL1CategoryById(selectedL1);
+  const selectedL2Category = getL2CategoryById(selectedL2);
+
+  // Reset expanded states when closing
+  useEffect(() => {
+    if (!isOpen) {
+      setExpandedL0(null);
+      setExpandedL1(null);
+    }
+  }, [isOpen]);
+
+  const handleL0Click = (l0Id: string) => {
+    if (expandedL0 === l0Id) {
+      setExpandedL0(null);
+      setExpandedL1(null);
+    } else {
+      setExpandedL0(l0Id);
+      setExpandedL1(null);
+    }
+    onL0Select(l0Id);
+    // Auto-select first L1 when L0 is selected
+    const l1Categories = getL1CategoriesForL0(l0Id);
+    if (l1Categories.length > 0) {
+      onL1Select(l1Categories[0].id);
+      // Auto-select first L2
+      if (l1Categories[0].l2Categories.length > 0) {
+        onL2Select(l1Categories[0].l2Categories[0].id);
+      } else {
+        onL2Select('all');
+      }
+    } else {
+      onL1Select('all');
+      onL2Select('all');
+    }
+    setIsOpen(false);
+  };
+
+  const handleL1Click = (l1Id: string, l0Id: string) => {
+    if (expandedL1 === l1Id) {
+      setExpandedL1(null);
+    } else {
+      setExpandedL1(l1Id);
+    }
+    onL0Select(l0Id);
+    onL1Select(l1Id);
+    // Auto-select first L2 when L1 is selected
+    const l1Category = getL1CategoryById(l1Id);
+    if (l1Category && l1Category.l2Categories.length > 0) {
+      onL2Select(l1Category.l2Categories[0].id);
+    } else {
+      onL2Select('all');
+    }
+    // Don't close dropdown if there are L2 categories
+    if (!l1Category || l1Category.l2Categories.length <= 1) {
+      setIsOpen(false);
+    }
+  };
+
+  const handleL2Click = (l2Id: string, l1Id: string, l0Id: string) => {
+    onL0Select(l0Id);
+    onL1Select(l1Id);
+    onL2Select(l2Id);
+    setIsOpen(false);
+  };
+
+  const getDisplayText = () => {
+    if (selectedL2 && selectedL2 !== 'all' && selectedL2Category) {
+      return selectedL2Category.name;
+    }
+    if (selectedL1 && selectedL1 !== 'all' && selectedL1Category) {
+      return selectedL1Category.name;
+    }
+    if (selectedL0 && selectedL0 !== 'all' && selectedL0Category) {
+      return selectedL0Category.name;
+    }
+    return 'All Categories';
+  };
+
+  const getDisplayIcon = () => {
+    if (selectedL2 && selectedL2 !== 'all') {
+      return CATEGORY_ICONS[selectedL2] || CATEGORY_ICONS[selectedL1] || CATEGORY_ICONS[selectedL0] || '📁';
+    }
+    if (selectedL1 && selectedL1 !== 'all') {
+      return CATEGORY_ICONS[selectedL1] || CATEGORY_ICONS[selectedL0] || '📁';
+    }
+    if (selectedL0 && selectedL0 !== 'all') {
+      return CATEGORY_ICONS[selectedL0] || '📁';
+    }
+    return '📁';
+  };
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+        className="flex items-center gap-2 px-3 py-2 bg-cp-color-surface-primary border border-cp-color-border-primary rounded-lg hover:bg-cp-color-surface-secondary transition min-w-48"
       >
-        <span>{selectedCategory.icon}</span>
-        <span className="text-sm font-medium text-gray-700">{selectedCategory.name}</span>
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span>{getDisplayIcon()}</span>
+        <span className="text-sm font-medium text-cp-color-text-primary truncate">
+          {getDisplayText()}
+        </span>
+        <svg className="w-4 h-4 text-cp-color-text-tertiary ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
@@ -38,21 +127,97 @@ export function CategorySelector({ selected, onSelect }: CategorySelectorProps) 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-56 z-50">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => {
-                  onSelect(category.id);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-dh-gray transition ${
-                  selected === category.id ? 'bg-dh-gray font-medium text-dh-red' : 'text-gray-700'
-                }`}
-              >
-                <span>{category.icon}</span>
-                {category.name}
-              </button>
+          <div className="absolute top-full left-0 mt-1 bg-cp-color-surface-primary rounded-lg shadow-lg border border-cp-color-border-primary py-1 min-w-80 max-h-[70vh] overflow-y-auto z-50">
+            {/* All Categories option */}
+            <button
+              onClick={() => {
+                onL0Select('all');
+                onL1Select('all');
+                onL2Select('all');
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-cp-color-surface-secondary transition ${
+                selectedL0 === 'all' ? 'bg-cp-color-surface-brand text-cp-color-text-inverse' : 'text-cp-color-text-primary'
+              }`}
+            >
+              <span>📁</span>
+              All Categories
+            </button>
+
+            {/* L0 Categories with expandable L1 and L2 */}
+            {L0_CATEGORIES.map((l0) => (
+              <div key={l0.id}>
+                {/* L0 Header */}
+                <button
+                  onClick={() => handleL0Click(l0.id)}
+                  className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-cp-color-surface-secondary transition ${
+                    selectedL0 === l0.id && selectedL1 === 'all' ? 'bg-cp-color-surface-secondary font-medium text-cp-color-text-brand' : 'text-cp-color-text-primary'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{CATEGORY_ICONS[l0.id] || '📁'}</span>
+                    <span className="font-medium">{l0.name}</span>
+                  </div>
+                  <svg
+                    className={`w-4 h-4 text-cp-color-text-tertiary transition-transform ${expandedL0 === l0.id ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* L1 Categories */}
+                {expandedL0 === l0.id && l0.l1Categories.length > 1 && (
+                  <div className="bg-cp-color-surface-secondary/30">
+                    {l0.l1Categories.map((l1) => (
+                      <div key={l1.id}>
+                        {/* L1 Header */}
+                        <button
+                          onClick={() => handleL1Click(l1.id, l0.id)}
+                          className={`w-full text-left pl-8 pr-4 py-2 text-sm flex items-center justify-between hover:bg-cp-color-surface-secondary transition ${
+                            selectedL1 === l1.id && selectedL2 === 'all' ? 'font-medium text-cp-color-text-brand' : 'text-cp-color-text-secondary'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{CATEGORY_ICONS[l1.id] || '📁'}</span>
+                            {l1.name}
+                          </div>
+                          {l1.l2Categories.length > 1 && (
+                            <svg
+                              className={`w-3 h-3 text-cp-color-text-tertiary transition-transform ${expandedL1 === l1.id ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* L2 Categories */}
+                        {expandedL1 === l1.id && l1.l2Categories.length > 1 && (
+                          <div className="bg-cp-color-surface-secondary/50">
+                            {l1.l2Categories.map((l2) => (
+                              <button
+                                key={l2.id}
+                                onClick={() => handleL2Click(l2.id, l1.id, l0.id)}
+                                className={`w-full text-left pl-14 pr-4 py-1.5 text-xs flex items-center gap-2 hover:bg-cp-color-surface-secondary transition ${
+                                  selectedL2 === l2.id ? 'font-medium text-cp-color-text-brand' : 'text-cp-color-text-tertiary'
+                                }`}
+                              >
+                                <span>{CATEGORY_ICONS[l2.id] || '📁'}</span>
+                                {l2.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </>
