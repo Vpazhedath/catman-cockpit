@@ -1,12 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Card, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { QuickActions } from '@/components/QuickActions';
-import { ExportModal } from '@/components/modals/ExportModal';
-import { useNotifications } from '@/lib/NotificationContext';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, Cell, ZAxis, CartesianGrid, Legend,
@@ -15,309 +9,155 @@ import {
 
 // ─── SPS Segmentation Tiers ──────────────────────────────
 type Segment = 'Key Accounts' | 'Standard' | 'Niche' | 'Long Tail';
+type RiskLevel = 'low' | 'medium' | 'high';
 
 const SEGMENT_COLORS: Record<Segment, string> = {
   'Key Accounts': '#4629FF',
-  'Standard': '#D61F26',
-  'Niche': '#F59E0B',
-  'Long Tail': '#10B981',
+  'Standard': '#047538',
+  'Niche': '#8F5D00',
+  'Long Tail': '#D62D0B',
 };
 
-const SEGMENT_DESCRIPTIONS: Record<Segment, string> = {
-  'Key Accounts': 'Drive majority of business value and are essential to our customers',
-  'Standard': 'Contribute to bottom line, but less to basket and assortment',
-  'Niche': 'Highly penetrated but low contribution to overall sales',
-  'Long Tail': 'Supplement assortment but less critical to value proposition',
-};
+const RISK_COLORS: Record<RiskLevel, string> = { low: '#047538', medium: '#8F5D00', high: '#D62D0B' };
+const RISK_BG: Record<RiskLevel, string> = { low: '#E5F5EC', medium: '#FFF8DF', high: '#FCEBE8' };
 
-// ─── SPS Supplier Data (Step 1 Segmentation + Step 2 Scoring) ─────────
+// ─── SPS Supplier Data ───────────────────────────────────
 interface SPSSupplier {
   supplier: string;
   segment: Segment;
   category: string;
-  // Segmentation metrics (Step 1)
-  netRetailProfit: number; // $ thousands
+  netRetailProfit: number;
   abvOrder: number;
   customerFrequency: number;
   customerPenetration: number;
-  importanceScore: number; // 0-100
-  productivityScore: number; // 0-100
-  // Scoring metrics (Step 2)
+  importanceScore: number;
+  productivityScore: number;
   fillRate: number;
-  otd: number; // On Time Delivery %
+  otd: number;
   yoyGpvGrowth: number;
   efficiency: number;
   promoGpvContr: number;
   frontMargin: number;
   backMargin: number;
-  // Computed scores
   opsScore: number;
   commercialScore: number;
   totalScore: number;
-  // Perception metrics
-  gpv: number; // $ thousands
+  gpv: number;
   gpvShare: number;
-  cogs: number; // $ thousands
-  supplierFunding: number; // $ thousands
+  cogs: number;
+  supplierFunding: number;
   totalMargin: number;
   availability: number;
   skuCount: number;
   isVMI: boolean;
 }
 
+function getRisk(score: number): RiskLevel {
+  if (score >= 55) return 'low';
+  if (score >= 35) return 'medium';
+  return 'high';
+}
+
 const SPS_SUPPLIERS: SPSSupplier[] = [
-  {
-    supplier: 'Almarai', segment: 'Key Accounts', category: 'Dairy',
-    netRetailProfit: 285, abvOrder: 18.5, customerFrequency: 2.4, customerPenetration: 31.2,
-    importanceScore: 95, productivityScore: 72,
-    fillRate: 88.5, otd: 82.1, yoyGpvGrowth: 14.2, efficiency: 78.3, promoGpvContr: 12.8, frontMargin: 28.4, backMargin: 4.2,
-    opsScore: 72, commercialScore: 58, totalScore: 65,
-    gpv: 892, gpvShare: 18.2, cogs: 641, supplierFunding: 8.5, totalMargin: 32.6, availability: 94.1, skuCount: 42, isVMI: true,
-  },
-  {
-    supplier: 'Nestle', segment: 'Key Accounts', category: 'Beverages',
-    netRetailProfit: 198, abvOrder: 15.2, customerFrequency: 2.1, customerPenetration: 28.6,
-    importanceScore: 82, productivityScore: 65,
-    fillRate: 75.5, otd: 66.7, yoyGpvGrowth: 20.0, efficiency: 56.0, promoGpvContr: 12.8, frontMargin: 17.0, backMargin: 5.0,
-    opsScore: 49, commercialScore: 38, totalScore: 44,
-    gpv: 624, gpvShare: 12.8, cogs: 518, supplierFunding: 3.2, totalMargin: 22.0, availability: 85.7, skuCount: 35, isVMI: false,
-  },
-  {
-    supplier: 'Coca-Cola', segment: 'Key Accounts', category: 'Beverages',
-    netRetailProfit: 165, abvOrder: 14.8, customerFrequency: 1.9, customerPenetration: 25.4,
-    importanceScore: 78, productivityScore: 58,
-    fillRate: 91.6, otd: 39.2, yoyGpvGrowth: 37.1, efficiency: 73.2, promoGpvContr: 6.2, frontMargin: 21.1, backMargin: 3.4,
-    opsScore: 71, commercialScore: 36, totalScore: 54,
-    gpv: 520, gpvShare: 10.6, cogs: 410, supplierFunding: 4.8, totalMargin: 24.5, availability: 82.5, skuCount: 18, isVMI: true,
-  },
-  {
-    supplier: 'PepsiCo', segment: 'Key Accounts', category: 'Beverages',
-    netRetailProfit: 142, abvOrder: 13.5, customerFrequency: 1.8, customerPenetration: 22.8,
-    importanceScore: 72, productivityScore: 55,
-    fillRate: 78.1, otd: 63.0, yoyGpvGrowth: 20.0, efficiency: 64.0, promoGpvContr: 9.0, frontMargin: 23.0, backMargin: 0.0,
-    opsScore: 62, commercialScore: 29, totalScore: 46,
-    gpv: 448, gpvShare: 9.2, cogs: 345, supplierFunding: 2.3, totalMargin: 23.0, availability: 78.0, skuCount: 22, isVMI: false,
-  },
-  {
-    supplier: 'GTRC Mars', segment: 'Key Accounts', category: 'Confectionery',
-    netRetailProfit: 57, abvOrder: 11.0, customerFrequency: 1.86, customerPenetration: 22.6,
-    importanceScore: 100, productivityScore: 47,
-    fillRate: 56.0, otd: 19.0, yoyGpvGrowth: 20.0, efficiency: 64.0, promoGpvContr: 9.0, frontMargin: 22.3, backMargin: 0.0,
-    opsScore: 41, commercialScore: 24, totalScore: 33,
-    gpv: 148, gpvShare: 13.0, cogs: 116, supplierFunding: 2.3, totalMargin: 23.3, availability: 74.4, skuCount: 15, isVMI: false,
-  },
-  {
-    supplier: 'Fergulf', segment: 'Key Accounts', category: 'Confectionery',
-    netRetailProfit: 125, abvOrder: 16.2, customerFrequency: 2.0, customerPenetration: 24.1,
-    importanceScore: 85, productivityScore: 62,
-    fillRate: 72.0, otd: 48.0, yoyGpvGrowth: 38.0, efficiency: 87.0, promoGpvContr: 17.0, frontMargin: 23.0, backMargin: 2.0,
-    opsScore: 62, commercialScore: 46, totalScore: 54,
-    gpv: 188, gpvShare: 17.0, cogs: 145, supplierFunding: 0, totalMargin: 24.5, availability: 72.7, skuCount: 12, isVMI: false,
-  },
-  {
-    supplier: 'Red Bull', segment: 'Standard', category: 'Beverages',
-    netRetailProfit: 68, abvOrder: 9.2, customerFrequency: 1.3, customerPenetration: 12.8,
-    importanceScore: 55, productivityScore: 28,
-    fillRate: 82.0, otd: 75.0, yoyGpvGrowth: 5.8, efficiency: 85.0, promoGpvContr: 8.5, frontMargin: 35.0, backMargin: 3.5,
-    opsScore: 59, commercialScore: 52, totalScore: 56,
-    gpv: 180, gpvShare: 3.7, cogs: 117, supplierFunding: 1.2, totalMargin: 38.5, availability: 97.0, skuCount: 4, isVMI: false,
-  },
-  {
-    supplier: 'Lacnor', segment: 'Standard', category: 'Beverages',
-    netRetailProfit: 52, abvOrder: 8.4, customerFrequency: 1.5, customerPenetration: 14.2,
-    importanceScore: 48, productivityScore: 32,
-    fillRate: 79.8, otd: 90.0, yoyGpvGrowth: 18.3, efficiency: 65.0, promoGpvContr: 29.3, frontMargin: 17.1, backMargin: 4.7,
-    opsScore: 84, commercialScore: 48, totalScore: 66,
-    gpv: 109, gpvShare: 2.2, cogs: 76, supplierFunding: 0.5, totalMargin: 30.7, availability: 78.0, skuCount: 8, isVMI: false,
-  },
-  {
-    supplier: 'Nadec', segment: 'Standard', category: 'Dairy',
-    netRetailProfit: 45, abvOrder: 7.8, customerFrequency: 1.4, customerPenetration: 11.5,
-    importanceScore: 42, productivityScore: 25,
-    fillRate: 85.0, otd: 70.0, yoyGpvGrowth: 8.2, efficiency: 72.0, promoGpvContr: 15.0, frontMargin: 29.0, backMargin: 2.5,
-    opsScore: 59, commercialScore: 44, totalScore: 52,
-    gpv: 145, gpvShare: 3.0, cogs: 103, supplierFunding: 0.8, totalMargin: 31.5, availability: 88.0, skuCount: 12, isVMI: false,
-  },
-  {
-    supplier: 'Barakat', segment: 'Standard', category: 'Dairy',
-    netRetailProfit: 38, abvOrder: 6.5, customerFrequency: 1.2, customerPenetration: 9.8,
-    importanceScore: 45, productivityScore: 18,
-    fillRate: 62.1, otd: 66.7, yoyGpvGrowth: -1.1, efficiency: 70.3, promoGpvContr: 0.4, frontMargin: 30.0, backMargin: 0.8,
-    opsScore: 64, commercialScore: 25, totalScore: 45,
-    gpv: 77, gpvShare: 1.6, cogs: 54, supplierFunding: 0.1, totalMargin: 30.7, availability: 78.0, skuCount: 6, isVMI: false,
-  },
-  {
-    supplier: 'Mondelez', segment: 'Niche', category: 'Confectionery',
-    netRetailProfit: 22, abvOrder: 12.0, customerFrequency: 1.6, customerPenetration: 18.5,
-    importanceScore: 28, productivityScore: 48,
-    fillRate: 70.0, otd: 55.0, yoyGpvGrowth: 12.0, efficiency: 60.0, promoGpvContr: 22.0, frontMargin: 25.0, backMargin: 3.0,
-    opsScore: 44, commercialScore: 42, totalScore: 43,
-    gpv: 85, gpvShare: 1.7, cogs: 64, supplierFunding: 1.0, totalMargin: 28.0, availability: 82.0, skuCount: 8, isVMI: false,
-  },
-  {
-    supplier: 'Ferrero', segment: 'Niche', category: 'Confectionery',
-    netRetailProfit: 18, abvOrder: 14.5, customerFrequency: 1.1, customerPenetration: 16.2,
-    importanceScore: 22, productivityScore: 45,
-    fillRate: 65.0, otd: 50.0, yoyGpvGrowth: 8.0, efficiency: 55.0, promoGpvContr: 18.0, frontMargin: 30.0, backMargin: 1.5,
-    opsScore: 39, commercialScore: 38, totalScore: 39,
-    gpv: 62, gpvShare: 1.3, cogs: 43, supplierFunding: 0.5, totalMargin: 31.5, availability: 76.0, skuCount: 5, isVMI: false,
-  },
-  {
-    supplier: 'Gulf Resources', segment: 'Long Tail', category: 'Grocery',
-    netRetailProfit: 8, abvOrder: 5.2, customerFrequency: 0.8, customerPenetration: 4.5,
-    importanceScore: 12, productivityScore: 12,
-    fillRate: 45.0, otd: 35.0, yoyGpvGrowth: -5.0, efficiency: 40.0, promoGpvContr: 2.0, frontMargin: 18.0, backMargin: 0.0,
-    opsScore: 27, commercialScore: 15, totalScore: 21,
-    gpv: 28, gpvShare: 0.6, cogs: 23, supplierFunding: 0, totalMargin: 18.0, availability: 61.0, skuCount: 18, isVMI: false,
-  },
-  {
-    supplier: 'Food Stores General', segment: 'Long Tail', category: 'Grocery',
-    netRetailProfit: 5, abvOrder: 4.8, customerFrequency: 0.7, customerPenetration: 3.2,
-    importanceScore: 8, productivityScore: 8,
-    fillRate: 20.0, otd: 29.0, yoyGpvGrowth: -10.0, efficiency: 51.0, promoGpvContr: 1.0, frontMargin: 35.0, backMargin: 4.0,
-    opsScore: 23, commercialScore: 24, totalScore: 24,
-    gpv: 58, gpvShare: 5.0, cogs: 38, supplierFunding: 0, totalMargin: 39.2, availability: 61.1, skuCount: 25, isVMI: false,
-  },
+  { supplier: 'Almarai', segment: 'Key Accounts', category: 'Dairy', netRetailProfit: 285, abvOrder: 18.5, customerFrequency: 2.4, customerPenetration: 31.2, importanceScore: 95, productivityScore: 72, fillRate: 88.5, otd: 82.1, yoyGpvGrowth: 14.2, efficiency: 78.3, promoGpvContr: 12.8, frontMargin: 28.4, backMargin: 4.2, opsScore: 72, commercialScore: 58, totalScore: 65, gpv: 892, gpvShare: 18.2, cogs: 641, supplierFunding: 8.5, totalMargin: 32.6, availability: 94.1, skuCount: 42, isVMI: true },
+  { supplier: 'Nestle', segment: 'Key Accounts', category: 'Beverages', netRetailProfit: 198, abvOrder: 15.2, customerFrequency: 2.1, customerPenetration: 28.6, importanceScore: 82, productivityScore: 65, fillRate: 75.5, otd: 66.7, yoyGpvGrowth: 20.0, efficiency: 56.0, promoGpvContr: 12.8, frontMargin: 17.0, backMargin: 5.0, opsScore: 49, commercialScore: 38, totalScore: 44, gpv: 624, gpvShare: 12.8, cogs: 518, supplierFunding: 3.2, totalMargin: 22.0, availability: 85.7, skuCount: 35, isVMI: false },
+  { supplier: 'Coca-Cola', segment: 'Key Accounts', category: 'Beverages', netRetailProfit: 165, abvOrder: 14.8, customerFrequency: 1.9, customerPenetration: 25.4, importanceScore: 78, productivityScore: 58, fillRate: 91.6, otd: 39.2, yoyGpvGrowth: 37.1, efficiency: 73.2, promoGpvContr: 6.2, frontMargin: 21.1, backMargin: 3.4, opsScore: 71, commercialScore: 36, totalScore: 54, gpv: 520, gpvShare: 10.6, cogs: 410, supplierFunding: 4.8, totalMargin: 24.5, availability: 82.5, skuCount: 18, isVMI: true },
+  { supplier: 'PepsiCo', segment: 'Key Accounts', category: 'Beverages', netRetailProfit: 142, abvOrder: 13.5, customerFrequency: 1.8, customerPenetration: 22.8, importanceScore: 72, productivityScore: 55, fillRate: 78.1, otd: 63.0, yoyGpvGrowth: 20.0, efficiency: 64.0, promoGpvContr: 9.0, frontMargin: 23.0, backMargin: 0.0, opsScore: 62, commercialScore: 29, totalScore: 46, gpv: 448, gpvShare: 9.2, cogs: 345, supplierFunding: 2.3, totalMargin: 23.0, availability: 78.0, skuCount: 22, isVMI: false },
+  { supplier: 'GTRC Mars', segment: 'Key Accounts', category: 'Confectionery', netRetailProfit: 57, abvOrder: 11.0, customerFrequency: 1.86, customerPenetration: 22.6, importanceScore: 100, productivityScore: 47, fillRate: 56.0, otd: 19.0, yoyGpvGrowth: 20.0, efficiency: 64.0, promoGpvContr: 9.0, frontMargin: 22.3, backMargin: 0.0, opsScore: 41, commercialScore: 24, totalScore: 33, gpv: 148, gpvShare: 13.0, cogs: 116, supplierFunding: 2.3, totalMargin: 23.3, availability: 74.4, skuCount: 15, isVMI: false },
+  { supplier: 'Fergulf', segment: 'Key Accounts', category: 'Confectionery', netRetailProfit: 125, abvOrder: 16.2, customerFrequency: 2.0, customerPenetration: 24.1, importanceScore: 85, productivityScore: 62, fillRate: 72.0, otd: 48.0, yoyGpvGrowth: 38.0, efficiency: 87.0, promoGpvContr: 17.0, frontMargin: 23.0, backMargin: 2.0, opsScore: 62, commercialScore: 46, totalScore: 54, gpv: 188, gpvShare: 17.0, cogs: 145, supplierFunding: 0, totalMargin: 24.5, availability: 72.7, skuCount: 12, isVMI: false },
+  { supplier: 'Red Bull', segment: 'Standard', category: 'Beverages', netRetailProfit: 68, abvOrder: 9.2, customerFrequency: 1.3, customerPenetration: 12.8, importanceScore: 55, productivityScore: 28, fillRate: 82.0, otd: 75.0, yoyGpvGrowth: 5.8, efficiency: 85.0, promoGpvContr: 8.5, frontMargin: 35.0, backMargin: 3.5, opsScore: 59, commercialScore: 52, totalScore: 56, gpv: 180, gpvShare: 3.7, cogs: 117, supplierFunding: 1.2, totalMargin: 38.5, availability: 97.0, skuCount: 4, isVMI: false },
+  { supplier: 'Lacnor', segment: 'Standard', category: 'Beverages', netRetailProfit: 52, abvOrder: 8.4, customerFrequency: 1.5, customerPenetration: 14.2, importanceScore: 48, productivityScore: 32, fillRate: 79.8, otd: 90.0, yoyGpvGrowth: 18.3, efficiency: 65.0, promoGpvContr: 29.3, frontMargin: 17.1, backMargin: 4.7, opsScore: 84, commercialScore: 48, totalScore: 66, gpv: 109, gpvShare: 2.2, cogs: 76, supplierFunding: 0.5, totalMargin: 30.7, availability: 78.0, skuCount: 8, isVMI: false },
+  { supplier: 'Nadec', segment: 'Standard', category: 'Dairy', netRetailProfit: 45, abvOrder: 7.8, customerFrequency: 1.4, customerPenetration: 11.5, importanceScore: 42, productivityScore: 25, fillRate: 85.0, otd: 70.0, yoyGpvGrowth: 8.2, efficiency: 72.0, promoGpvContr: 15.0, frontMargin: 29.0, backMargin: 2.5, opsScore: 59, commercialScore: 44, totalScore: 52, gpv: 145, gpvShare: 3.0, cogs: 103, supplierFunding: 0.8, totalMargin: 31.5, availability: 88.0, skuCount: 12, isVMI: false },
+  { supplier: 'Barakat', segment: 'Standard', category: 'Dairy', netRetailProfit: 38, abvOrder: 6.5, customerFrequency: 1.2, customerPenetration: 9.8, importanceScore: 45, productivityScore: 18, fillRate: 62.1, otd: 66.7, yoyGpvGrowth: -1.1, efficiency: 70.3, promoGpvContr: 0.4, frontMargin: 30.0, backMargin: 0.8, opsScore: 64, commercialScore: 25, totalScore: 45, gpv: 77, gpvShare: 1.6, cogs: 54, supplierFunding: 0.1, totalMargin: 30.7, availability: 78.0, skuCount: 6, isVMI: false },
+  { supplier: 'Mondelez', segment: 'Niche', category: 'Confectionery', netRetailProfit: 22, abvOrder: 12.0, customerFrequency: 1.6, customerPenetration: 18.5, importanceScore: 28, productivityScore: 48, fillRate: 70.0, otd: 55.0, yoyGpvGrowth: 12.0, efficiency: 60.0, promoGpvContr: 22.0, frontMargin: 25.0, backMargin: 3.0, opsScore: 44, commercialScore: 42, totalScore: 43, gpv: 85, gpvShare: 1.7, cogs: 64, supplierFunding: 1.0, totalMargin: 28.0, availability: 82.0, skuCount: 8, isVMI: false },
+  { supplier: 'Ferrero', segment: 'Niche', category: 'Confectionery', netRetailProfit: 18, abvOrder: 14.5, customerFrequency: 1.1, customerPenetration: 16.2, importanceScore: 22, productivityScore: 45, fillRate: 65.0, otd: 50.0, yoyGpvGrowth: 8.0, efficiency: 55.0, promoGpvContr: 18.0, frontMargin: 30.0, backMargin: 1.5, opsScore: 39, commercialScore: 38, totalScore: 39, gpv: 62, gpvShare: 1.3, cogs: 43, supplierFunding: 0.5, totalMargin: 31.5, availability: 76.0, skuCount: 5, isVMI: false },
+  { supplier: 'Gulf Resources', segment: 'Long Tail', category: 'Grocery', netRetailProfit: 8, abvOrder: 5.2, customerFrequency: 0.8, customerPenetration: 4.5, importanceScore: 12, productivityScore: 12, fillRate: 45.0, otd: 35.0, yoyGpvGrowth: -5.0, efficiency: 40.0, promoGpvContr: 2.0, frontMargin: 18.0, backMargin: 0.0, opsScore: 27, commercialScore: 15, totalScore: 21, gpv: 28, gpvShare: 0.6, cogs: 23, supplierFunding: 0, totalMargin: 18.0, availability: 61.0, skuCount: 18, isVMI: false },
+  { supplier: 'Food Stores General', segment: 'Long Tail', category: 'Grocery', netRetailProfit: 5, abvOrder: 4.8, customerFrequency: 0.7, customerPenetration: 3.2, importanceScore: 8, productivityScore: 8, fillRate: 20.0, otd: 29.0, yoyGpvGrowth: -10.0, efficiency: 51.0, promoGpvContr: 1.0, frontMargin: 35.0, backMargin: 4.0, opsScore: 23, commercialScore: 24, totalScore: 24, gpv: 58, gpvShare: 5.0, cogs: 38, supplierFunding: 0, totalMargin: 39.2, availability: 61.1, skuCount: 25, isVMI: false },
 ];
 
-// ─── Segment Summary ──────────────────────────────────────
+// ─── Segment Summary ─────────────────────────────────────
 const SEGMENT_SUMMARY = [
-  { segment: 'Key Accounts' as Segment, supplierCount: 6, gpv: 2820, gpvShare: 70, netProfit: 972, profitShare: 65 },
-  { segment: 'Standard' as Segment, supplierCount: 4, gpv: 511, gpvShare: 18, netProfit: 203, profitShare: 22 },
-  { segment: 'Niche' as Segment, supplierCount: 2, gpv: 147, gpvShare: 2, netProfit: 40, profitShare: 3 },
-  { segment: 'Long Tail' as Segment, supplierCount: 2, gpv: 86, gpvShare: 9, netProfit: 13, profitShare: 11 },
+  { segment: 'Key Accounts' as Segment, count: 6, gpvShare: 70, profitShare: 65 },
+  { segment: 'Standard' as Segment, count: 4, gpvShare: 18, profitShare: 22 },
+  { segment: 'Niche' as Segment, count: 2, gpvShare: 2, profitShare: 3 },
+  { segment: 'Long Tail' as Segment, count: 2, gpvShare: 9, profitShare: 11 },
 ];
 
-// ─── SPS Scoring Trend ────────────────────────────────────
-const SCORE_TREND = [
-  { quarter: 'Q1 \'25', avgOps: 48.2, avgCommercial: 32.5, avgTotal: 40.4 },
-  { quarter: 'Q2 \'25', avgOps: 50.8, avgCommercial: 34.1, avgTotal: 42.5 },
-  { quarter: 'Q3 \'25', avgOps: 53.1, avgCommercial: 35.8, avgTotal: 44.5 },
-  { quarter: 'Q4 \'25', avgOps: 55.6, avgCommercial: 37.2, avgTotal: 46.4 },
-  { quarter: 'Q1 \'26', avgOps: 56.8, avgCommercial: 38.9, avgTotal: 47.9 },
-];
-
-// ─── SPS Opportunities ───────────────────────────────────
+// ─── SPS Opportunities ──────────────────────────────────
 interface SPSOpportunity {
   supplier: string;
   segment: Segment;
   opportunity: string;
-  blindSpot: string;
   action: string;
-  yearlySizing: number; // EUR thousands
+  yearlySizing: number;
   status: 'Completed' | 'In Progress' | 'Not Started';
   type: 'Margin Expansion' | 'Growth Opportunity';
 }
 
 const SPS_OPPORTUNITIES: SPSOpportunity[] = [
-  {
-    supplier: 'GTRC Mars', segment: 'Key Accounts',
-    opportunity: 'No Back Margin agreement — affecting Total Margin',
-    blindSpot: 'Check for funding from Prio 2 rebates or ad-hoc NMR',
-    action: 'Negotiate at least 1% BM% to achieve parity with category leader',
-    yearlySizing: 8.0, status: 'In Progress', type: 'Margin Expansion',
-  },
-  {
-    supplier: 'GTRC Mars', segment: 'Key Accounts',
-    opportunity: 'Lowest Fill Rate (56%) & OTD (19%) among confectionery',
-    blindSpot: 'Check availability level focused on top seller products',
-    action: 'Aim to achieve similar Fill Rate as Fergulf ~72%',
-    yearlySizing: 44.0, status: 'Not Started', type: 'Growth Opportunity',
-  },
-  {
-    supplier: 'PepsiCo', segment: 'Key Accounts',
-    opportunity: 'No Back Margin agreement despite high GPV share',
-    blindSpot: 'Check for contractual NMR not captured in Auto Rebate Calculator',
-    action: 'Negotiate warehouse allowance rebate to cover delivery costs',
-    yearlySizing: 4.1, status: 'Completed', type: 'Margin Expansion',
-  },
-  {
-    supplier: 'PepsiCo', segment: 'Key Accounts',
-    opportunity: 'Minimal promo contribution vs. category leader',
-    blindSpot: 'Compare promo calendar with Coca-Cola campaigns',
-    action: 'Secure monthly promotions for 7 key SKUs',
-    yearlySizing: 10.6, status: 'Completed', type: 'Growth Opportunity',
-  },
-  {
-    supplier: 'Barakat', segment: 'Standard',
-    opportunity: 'GPV YoY decline (-1.1%) with low promo contribution (0.4%)',
-    blindSpot: 'Review if decline is seasonal or systemic',
-    action: 'Negotiate contractual NMR to push sales and increase overall margin',
-    yearlySizing: 12.5, status: 'In Progress', type: 'Growth Opportunity',
-  },
-  {
-    supplier: 'Nestle', segment: 'Key Accounts',
-    opportunity: 'Front Margin at 17% — well below category average of 24%',
-    blindSpot: 'Review COGS against competitor pricing to validate margin gap',
-    action: 'Renegotiate cost price to align FM% with category benchmark',
-    yearlySizing: 18.4, status: 'Not Started', type: 'Margin Expansion',
-  },
+  { supplier: 'GTRC Mars', segment: 'Key Accounts', opportunity: 'No Back Margin agreement', action: 'Negotiate at least 1% BM%', yearlySizing: 8.0, status: 'In Progress', type: 'Margin Expansion' },
+  { supplier: 'GTRC Mars', segment: 'Key Accounts', opportunity: 'Lowest Fill Rate (56%) & OTD (19%)', action: 'Aim Fill Rate ~72% (Fergulf parity)', yearlySizing: 44.0, status: 'Not Started', type: 'Growth Opportunity' },
+  { supplier: 'PepsiCo', segment: 'Key Accounts', opportunity: 'No Back Margin despite high GPV', action: 'Negotiate warehouse allowance rebate', yearlySizing: 4.1, status: 'Completed', type: 'Margin Expansion' },
+  { supplier: 'PepsiCo', segment: 'Key Accounts', opportunity: 'Minimal promo contribution', action: 'Secure monthly promos for 7 key SKUs', yearlySizing: 10.6, status: 'Completed', type: 'Growth Opportunity' },
+  { supplier: 'Barakat', segment: 'Standard', opportunity: 'GPV YoY decline (-1.1%)', action: 'Negotiate contractual NMR', yearlySizing: 12.5, status: 'In Progress', type: 'Growth Opportunity' },
+  { supplier: 'Nestle', segment: 'Key Accounts', opportunity: 'Front Margin 17% — below avg 24%', action: 'Renegotiate cost price to benchmark', yearlySizing: 18.4, status: 'Not Started', type: 'Margin Expansion' },
 ];
 
-// ─── Scoring Weights (from SPS methodology) ──────────────
+// ─── Score Trend ─────────────────────────────────────────
+const SCORE_TREND = [
+  { quarter: "Q1 '25", avgOps: 48.2, avgCommercial: 32.5, avgTotal: 40.4 },
+  { quarter: "Q2 '25", avgOps: 50.8, avgCommercial: 34.1, avgTotal: 42.5 },
+  { quarter: "Q3 '25", avgOps: 53.1, avgCommercial: 35.8, avgTotal: 44.5 },
+  { quarter: "Q4 '25", avgOps: 55.6, avgCommercial: 37.2, avgTotal: 46.4 },
+  { quarter: "Q1 '26", avgOps: 56.8, avgCommercial: 38.9, avgTotal: 47.9 },
+];
+
+// ─── Scoring Weights ────────────────────────────────────
 const SCORING_WEIGHTS = {
-  ops: { fillRate: 60, otd: 40 },
-  commercial: { efficiency: 30, promoGpvContr: 20, yoyGpvGrowth: 10, frontMargin: 15, backMargin: 25 },
+  ops: [
+    { label: 'Fill Rate %', weight: 60 },
+    { label: 'On Time Delivery %', weight: 40 },
+  ],
+  commercial: [
+    { label: 'Back Margin %', weight: 25 },
+    { label: 'Efficiency %', weight: 30 },
+    { label: 'Promo GPV Contr. %', weight: 20 },
+    { label: 'Front Margin %', weight: 15 },
+    { label: 'YoY GPV Growth %', weight: 10 },
+  ],
 };
 
-// ─── Tooltip Formatters ──────────────────────────────────
-const darkTooltipStyle = { backgroundColor: '#131732', border: 'none', borderRadius: '8px', color: 'white', fontSize: '12px' };
-
+// ═════════════════════════════════════════════════════════
+// Component
+// ═════════════════════════════════════════════════════════
 export default function ProfitabilityPage() {
   const [selectedSegment, setSelectedSegment] = useState<'all' | Segment>('all');
   const [sortBy, setSortBy] = useState<'totalScore' | 'opsScore' | 'commercialScore' | 'gpv'>('totalScore');
-  const [isExportOpen, setIsExportOpen] = useState(false);
-  const [negotiations, setNegotiations] = useState<string[]>([]);
-  const [activeView, setActiveView] = useState<'segmentation' | 'scoring'>('segmentation');
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
-  const { addNotification } = useNotifications();
+  const [activeView, setActiveView] = useState<'segmentation' | 'scoring'>('segmentation');
 
   const filteredSuppliers = useMemo(() => {
     let data = [...SPS_SUPPLIERS];
-    if (selectedSegment !== 'all') {
-      data = data.filter(s => s.segment === selectedSegment);
-    }
-    data.sort((a, b) => {
-      if (sortBy === 'totalScore') return b.totalScore - a.totalScore;
-      if (sortBy === 'opsScore') return b.opsScore - a.opsScore;
-      if (sortBy === 'commercialScore') return b.commercialScore - a.commercialScore;
-      return b.gpv - a.gpv;
-    });
+    if (selectedSegment !== 'all') data = data.filter(s => s.segment === selectedSegment);
+    data.sort((a, b) => b[sortBy] - a[sortBy]);
     return data;
   }, [selectedSegment, sortBy]);
 
   const stats = useMemo(() => {
     const all = SPS_SUPPLIERS;
     return {
-      avgTotal: (all.reduce((s, x) => s + x.totalScore, 0) / all.length).toFixed(1),
-      avgOps: (all.reduce((s, x) => s + x.opsScore, 0) / all.length).toFixed(1),
-      avgCommercial: (all.reduce((s, x) => s + x.commercialScore, 0) / all.length).toFixed(1),
-      totalGPV: all.reduce((s, x) => s + x.gpv, 0),
+      avgTotal: (all.reduce((s, x) => s + x.totalScore, 0) / all.length).toFixed(0),
+      belowThreshold: all.filter(x => x.totalScore < 40).length,
       totalOpportunity: SPS_OPPORTUNITIES.reduce((s, x) => s + x.yearlySizing, 0),
-      completedOps: SPS_OPPORTUNITIES.filter(o => o.status === 'Completed').length,
-      inProgressOps: SPS_OPPORTUNITIES.filter(o => o.status === 'In Progress').length,
+      supplierCount: all.length,
     };
   }, []);
 
-  // Segmentation scatter data
-  const segmentationData = SPS_SUPPLIERS.map(s => ({
-    x: s.productivityScore,
-    y: s.importanceScore,
-    z: s.gpv,
-    name: s.supplier,
-    segment: s.segment,
-    fill: SEGMENT_COLORS[s.segment],
-  }));
-
-  // Scoring quadrant data
-  const scoringData = SPS_SUPPLIERS.map(s => ({
-    x: s.commercialScore,
-    y: s.opsScore,
-    z: s.gpv,
-    name: s.supplier,
-    segment: s.segment,
-    fill: SEGMENT_COLORS[s.segment],
-  }));
+  // Scatter chart data
+  const scatterData = SPS_SUPPLIERS.map(s => activeView === 'segmentation'
+    ? { x: s.productivityScore, y: s.importanceScore, z: s.gpv, name: s.supplier, segment: s.segment, fill: SEGMENT_COLORS[s.segment] }
+    : { x: s.commercialScore, y: s.opsScore, z: s.gpv, name: s.supplier, segment: s.segment, fill: SEGMENT_COLORS[s.segment] }
+  );
 
   // Radar data for selected supplier
   const radarData = selectedSupplier ? (() => {
@@ -334,572 +174,417 @@ export default function ProfitabilityPage() {
     ];
   })() : [];
 
-  const handleStartNegotiation = (supplier: string) => {
-    setNegotiations([...negotiations, supplier]);
-    addNotification({
-      type: 'info',
-      title: 'Negotiation Initiated',
-      message: `SPS-driven negotiation started with ${supplier}`,
-      actionUrl: '/profitability',
-      actionLabel: 'Track Progress',
-    });
+  /* ── Styles matching the new design system ── */
+  const card: React.CSSProperties = {
+    background: '#fff',
+    border: '1px solid #E9EAEC',
+    borderRadius: 12,
+    padding: 20,
+  };
+
+  const fg1 = '#141415';
+  const fg2 = '#6C6D73';
+  const fg3 = '#93949D';
+
+  const statusColors: Record<string, { bg: string; fg: string }> = {
+    Completed: { bg: '#E5F5EC', fg: '#047538' },
+    'In Progress': { bg: '#FFF8DF', fg: '#8F5D00' },
+    'Not Started': { bg: '#F4F5F6', fg: '#93949D' },
+  };
+
+  const typeColors: Record<string, { bg: string; fg: string }> = {
+    'Margin Expansion': { bg: '#EDEBFF', fg: '#4629FF' },
+    'Growth Opportunity': { bg: '#E5F5EC', fg: '#047538' },
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-cp-color-text-primary">Supplier Performance Scorecard</h1>
-          <p className="text-cp-color-text-secondary mt-1">Profitability Engine • SPS v1 — Segmentation, Scoring & Opportunity Detection</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* ── Page Header ── */}
+      <div>
+        <div style={{ font: '700 28px/1.25 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', letterSpacing: '-0.01em', color: fg1 }}>
+          Supplier Performance Scorecard
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => setIsExportOpen(true)}>
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export
-          </Button>
-          <QuickActions />
+        <div style={{ font: '500 14px/1.5 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg2, marginTop: 4 }}>
+          Profitability Engine · SPS v1 — Segmentation, Scoring & Opportunity Detection
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card variant="outlined" className="p-4">
-          <p className="text-xs text-cp-color-text-secondary font-medium uppercase tracking-wide">Avg Total Score</p>
-          <p className="text-2xl font-bold text-cp-color-text-primary mt-1">{stats.avgTotal}</p>
-          <div className="flex items-center gap-1 mt-1">
-            <svg className="w-3.5 h-3.5 text-cp-color-text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-            <p className="text-xs text-cp-color-text-success">+3.4 vs Q4</p>
+      {/* ── KPI Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        {[
+          { l: 'Avg Supplier Score', v: `${stats.avgTotal}/100`, c: '#4629FF' },
+          { l: 'Below Threshold', v: String(stats.belowThreshold), c: '#D62D0B' },
+          { l: 'Renegotiation Opp.', v: `EUR ${stats.totalOpportunity.toFixed(0)}K`, c: '#047538' },
+          { l: 'Active Suppliers', v: String(stats.supplierCount), c: fg1 },
+        ].map((s, i) => (
+          <div key={i} style={{ ...card, padding: '14px 18px' }}>
+            <div style={{ font: '500 11px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.l}</div>
+            <div style={{ font: '700 22px/1.2 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: s.c, marginTop: 6 }}>{s.v}</div>
           </div>
-        </Card>
-        <Card variant="outlined" className="p-4">
-          <p className="text-xs text-cp-color-text-secondary font-medium uppercase tracking-wide">Ops Score</p>
-          <p className="text-2xl font-bold text-cp-color-text-primary mt-1">{stats.avgOps}</p>
-          <p className="text-xs text-cp-color-text-secondary mt-1">Fill Rate + OTD weighted</p>
-        </Card>
-        <Card variant="outlined" className="p-4">
-          <p className="text-xs text-cp-color-text-secondary font-medium uppercase tracking-wide">Commercial Score</p>
-          <p className="text-2xl font-bold text-cp-color-text-primary mt-1">{stats.avgCommercial}</p>
-          <p className="text-xs text-cp-color-text-secondary mt-1">FM + BM + Efficiency</p>
-        </Card>
-        <Card variant="outlined" className="p-4">
-          <p className="text-xs text-cp-color-text-secondary font-medium uppercase tracking-wide">Total GPV</p>
-          <p className="text-2xl font-bold text-cp-color-text-primary mt-1">AED {(stats.totalGPV / 1000).toFixed(1)}M</p>
-          <p className="text-xs text-cp-color-text-secondary mt-1">{SPS_SUPPLIERS.length} suppliers scored</p>
-        </Card>
-        <Card variant="outlined" className="p-4">
-          <p className="text-xs text-cp-color-text-secondary font-medium uppercase tracking-wide">Opportunities</p>
-          <p className="text-2xl font-bold text-dh-red mt-1">EUR {stats.totalOpportunity.toFixed(0)}K</p>
-          <p className="text-xs text-cp-color-text-success mt-1">{stats.completedOps} completed • {stats.inProgressOps} in progress</p>
-        </Card>
+        ))}
       </div>
 
-      {/* Segmentation / Scoring Toggle + Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart */}
-        <Card className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveView('segmentation')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${activeView === 'segmentation' ? 'bg-dh-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                Segmentation
-              </button>
-              <button
-                onClick={() => setActiveView('scoring')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${activeView === 'scoring' ? 'bg-dh-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                Scoring Quadrant
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              {Object.entries(SEGMENT_COLORS).map(([seg, color]) => (
-                <div key={seg} className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-xs text-gray-500">{seg}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {activeView === 'segmentation' ? (
-            <div>
-              <p className="text-xs text-cp-color-text-secondary mb-2">
-                Supplier Importance (Y) vs Supplier Productivity (X) — bubble size = GPV
-              </p>
-              <div className="h-80 relative">
-                {/* Cutoff lines */}
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis type="number" dataKey="x" name="Productivity" domain={[0, 100]}
-                      tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false}
-                      label={{ value: 'Supplier Productivity & Importance to Customers', position: 'insideBottom', offset: -10, fontSize: 11, fill: '#6b7280' }}
-                    />
-                    <YAxis type="number" dataKey="y" name="Importance" domain={[0, 100]}
-                      tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false}
-                      label={{ value: 'Importance to Business', angle: -90, position: 'insideLeft', offset: 5, fontSize: 11, fill: '#6b7280' }}
-                    />
-                    <ZAxis type="number" dataKey="z" range={[80, 600]} />
-                    <Tooltip
-                      contentStyle={darkTooltipStyle}
-                      labelFormatter={(_, payload) => payload?.[0]?.payload?.name || ''}
-                    />
-                    {/* Cutoff reference lines via cartesianGrid areas */}
-                    <Scatter data={segmentationData}>
-                      {segmentationData.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.fill} fillOpacity={0.75} stroke={entry.fill} strokeWidth={1} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-                {/* Cutoff labels */}
-                <div className="absolute left-[48%] top-0 bottom-0 border-l border-dashed border-red-300" />
-                <div className="absolute left-0 right-0 top-[55%] border-t border-dashed border-red-300" />
-                <span className="absolute left-[49%] top-1 text-[10px] text-red-400 font-medium">Cut-off: 40</span>
-                <span className="absolute right-2 top-[56%] text-[10px] text-red-400 font-medium">Cut-off: 15</span>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p className="text-xs text-cp-color-text-secondary mb-2">
-                Ops Score (Y) vs Commercial Score (X) — identify Leverage/Expand vs Monitor/Replace
-              </p>
-              <div className="h-80 relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis type="number" dataKey="x" name="Commercial" domain={[0, 100]}
-                      tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false}
-                      label={{ value: 'Commercial Score', position: 'insideBottom', offset: -10, fontSize: 11, fill: '#6b7280' }}
-                    />
-                    <YAxis type="number" dataKey="y" name="Operations" domain={[0, 100]}
-                      tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false}
-                      label={{ value: 'Ops Score', angle: -90, position: 'insideLeft', offset: 5, fontSize: 11, fill: '#6b7280' }}
-                    />
-                    <ZAxis type="number" dataKey="z" range={[80, 600]} />
-                    <Tooltip
-                      contentStyle={darkTooltipStyle}
-                      labelFormatter={(_, payload) => payload?.[0]?.payload?.name || ''}
-                    />
-                    <Scatter data={scoringData}>
-                      {scoringData.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.fill} fillOpacity={0.75} stroke={entry.fill} strokeWidth={1} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-                {/* Quadrant labels */}
-                <div className="absolute left-[48%] top-0 bottom-0 border-l border-dashed border-gray-300" />
-                <div className="absolute left-0 right-0 top-[50%] border-t border-dashed border-gray-300" />
-                <span className="absolute left-[14%] top-[20%] text-[10px] text-gray-400 font-medium bg-white px-1 rounded">Develop Commercials</span>
-                <span className="absolute right-[14%] top-[20%] text-[10px] text-dh-purple font-semibold bg-white px-1 rounded">Leverage / Expand</span>
-                <span className="absolute left-[14%] bottom-[18%] text-[10px] text-gray-400 font-medium bg-white px-1 rounded">Monitor / Replace</span>
-                <span className="absolute right-[14%] bottom-[18%] text-[10px] text-gray-400 font-medium bg-white px-1 rounded">Improve Service Level</span>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Right panel: Segment breakdown or Radar */}
-        <Card>
-          {selectedSupplier && radarData.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <CardHeader title={selectedSupplier} subtitle="SPS Metric Breakdown" />
-                <button onClick={() => setSelectedSupplier(null)} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
-              </div>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData} outerRadius={80}>
-                    <PolarGrid stroke="#e5e7eb" />
-                    <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: '#6b7280' }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} />
-                    <Radar name={selectedSupplier} dataKey="value" stroke="#4629FF" fill="#4629FF" fillOpacity={0.25} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-              {(() => {
-                const s = SPS_SUPPLIERS.find(x => x.supplier === selectedSupplier)!;
-                return (
-                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <span className="text-gray-500">Ops Score</span>
-                      <span className="block font-bold text-dh-blue text-lg">{s.opsScore}</span>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <span className="text-gray-500">Commercial</span>
-                      <span className="block font-bold text-dh-blue text-lg">{s.commercialScore}</span>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <span className="text-gray-500">Fill Rate</span>
-                      <span className="block font-semibold">{s.fillRate}%</span>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <span className="text-gray-500">Back Margin</span>
-                      <span className={`block font-semibold ${s.backMargin === 0 ? 'text-dh-red' : ''}`}>{s.backMargin}%</span>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          ) : (
-            <div>
-              <CardHeader title="Segment Breakdown" subtitle="GPV & profit distribution" />
-              <div className="space-y-3">
-                {SEGMENT_SUMMARY.map(seg => (
-                  <div
-                    key={seg.segment}
-                    className={`border rounded-lg p-3 cursor-pointer transition hover:shadow-sm ${selectedSegment === seg.segment ? 'border-dh-purple bg-purple-50' : 'border-gray-100'}`}
-                    onClick={() => setSelectedSegment(selectedSegment === seg.segment ? 'all' : seg.segment)}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: SEGMENT_COLORS[seg.segment] }} />
-                        <span className="text-sm font-medium text-dh-blue">{seg.segment}</span>
-                      </div>
-                      <span className="text-xs text-gray-400">{seg.supplierCount} suppliers</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-gray-500">GPV Share</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${seg.gpvShare}%`, backgroundColor: SEGMENT_COLORS[seg.segment] }} />
-                          </div>
-                          <span className="font-medium">{seg.gpvShare}%</span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Profit Share</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-dh-green" style={{ width: `${seg.profitShare}%` }} />
-                          </div>
-                          <span className="font-medium">{seg.profitShare}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Score Trend */}
-      <Card>
-        <CardHeader title="SPS Score Trend" subtitle="Quarterly average scores across supplier base" />
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={SCORE_TREND} barGap={2}>
-              <XAxis dataKey="quarter" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} domain={[0, 100]} />
-              <Tooltip contentStyle={darkTooltipStyle} />
-              <Bar dataKey="avgOps" name="Ops Score" fill="#4629FF" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="avgCommercial" name="Commercial Score" fill="#A2FAA3" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="avgTotal" name="Total Score" fill="#D61F26" radius={[3, 3, 0, 0]} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
-
-      {/* Supplier Scorecard Table */}
-      <Card padding="none">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <CardHeader title="Supplier Performance Scorecard" subtitle={`${filteredSuppliers.length} suppliers • Click row for radar detail`} />
-          <div className="flex items-center gap-3">
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm"
-            >
-              <option value="totalScore">Sort by Total Score</option>
-              <option value="opsScore">Sort by Ops Score</option>
-              <option value="commercialScore">Sort by Commercial Score</option>
-              <option value="gpv">Sort by GPV</option>
-            </select>
-            <div className="flex gap-1">
-              {(['all', 'Key Accounts', 'Standard', 'Niche', 'Long Tail'] as const).map(seg => (
-                <button
-                  key={seg}
-                  onClick={() => setSelectedSegment(seg)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                    selectedSegment === seg ? 'bg-dh-blue text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {seg === 'all' ? 'All' : seg}
+      {/* ── Segmentation / Scoring Chart + Segment Breakdown ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+        {/* Chart */}
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['segmentation', 'scoring'] as const).map(v => (
+                <button key={v} onClick={() => setActiveView(v)} style={{
+                  display: 'inline-flex', alignItems: 'center', padding: '8px 16px', borderRadius: 200, cursor: 'pointer',
+                  font: '600 12px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)',
+                  background: activeView === v ? '#4629FF' : 'transparent',
+                  color: activeView === v ? '#fff' : fg2,
+                  border: `1px solid ${activeView === v ? '#4629FF' : '#E9EAEC'}`,
+                }}>
+                  {v === 'segmentation' ? 'Segmentation' : 'Scoring Quadrant'}
                 </button>
               ))}
             </div>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase" rowSpan={2}>Supplier</th>
-                <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase" rowSpan={2}>Segment</th>
-                <th className="text-center px-3 py-1.5 text-[10px] font-semibold text-dh-blue uppercase border-b border-gray-200" colSpan={2}>Ops Metrics</th>
-                <th className="text-center px-3 py-1.5 text-[10px] font-semibold text-dh-blue uppercase border-b border-gray-200" colSpan={5}>Commercial Metrics</th>
-                <th className="text-center px-3 py-1.5 text-[10px] font-semibold text-dh-red uppercase border-b border-gray-200" colSpan={3}>Scores</th>
-                <th className="text-center px-3 py-1.5 text-[10px] font-semibold text-gray-500 uppercase border-b border-gray-200" colSpan={2}>Perception</th>
-              </tr>
-              <tr className="bg-gray-50">
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">Fill Rate</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">OTD</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">YoY GPV</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">Efficiency</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">Promo %</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">FM %</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">BM %</th>
-                <th className="px-3 py-1.5 text-[10px] text-dh-blue font-semibold text-center">Ops</th>
-                <th className="px-3 py-1.5 text-[10px] text-dh-blue font-semibold text-center">Comm.</th>
-                <th className="px-3 py-1.5 text-[10px] text-dh-red font-bold text-center">Total</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">GPV (K)</th>
-                <th className="px-3 py-1.5 text-[10px] text-gray-400 font-medium text-center">Total Mgn</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredSuppliers.map((row, idx) => (
-                <tr
-                  key={idx}
-                  className={`hover:bg-blue-50/30 cursor-pointer transition ${selectedSupplier === row.supplier ? 'bg-purple-50/40' : ''}`}
-                  onClick={() => setSelectedSupplier(selectedSupplier === row.supplier ? null : row.supplier)}
-                >
-                  <td className="px-4 py-2.5 text-sm font-medium text-dh-blue">{row.supplier}</td>
-                  <td className="px-4 py-2.5 text-center">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full" style={{
-                      backgroundColor: `${SEGMENT_COLORS[row.segment]}15`,
-                      color: SEGMENT_COLORS[row.segment],
-                    }}>
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: SEGMENT_COLORS[row.segment] }} />
-                      {row.segment}
-                    </span>
-                  </td>
-                  <td className={`px-3 py-2.5 text-xs text-center font-medium ${row.fillRate >= 80 ? 'text-green-600' : row.fillRate >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                    {row.fillRate}%
-                  </td>
-                  <td className={`px-3 py-2.5 text-xs text-center font-medium ${row.otd >= 70 ? 'text-green-600' : row.otd >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                    {row.otd}%
-                  </td>
-                  <td className={`px-3 py-2.5 text-xs text-center ${row.yoyGpvGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {row.yoyGpvGrowth > 0 ? '+' : ''}{row.yoyGpvGrowth}%
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-center text-gray-600">{row.efficiency}%</td>
-                  <td className="px-3 py-2.5 text-xs text-center text-gray-600">{row.promoGpvContr}%</td>
-                  <td className="px-3 py-2.5 text-xs text-center text-gray-600">{row.frontMargin}%</td>
-                  <td className={`px-3 py-2.5 text-xs text-center font-medium ${row.backMargin === 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                    {row.backMargin === 0 ? (
-                      <span className="inline-flex items-center gap-0.5">
-                        0%
-                        <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                    ) : `${row.backMargin}%`}
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                      row.opsScore >= 60 ? 'bg-green-100 text-green-700' : row.opsScore >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                    }`}>{row.opsScore}</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                      row.commercialScore >= 50 ? 'bg-green-100 text-green-700' : row.commercialScore >= 30 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                    }`}>{row.commercialScore}</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-lg text-xs font-bold ${
-                      row.totalScore >= 55 ? 'bg-green-600 text-white' : row.totalScore >= 40 ? 'bg-amber-500 text-white' : 'bg-red-600 text-white'
-                    }`}>{row.totalScore}</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-center text-gray-600">{row.gpv}</td>
-                  <td className={`px-3 py-2.5 text-xs text-center font-medium ${row.totalMargin >= 30 ? 'text-green-600' : 'text-amber-600'}`}>
-                    {row.totalMargin}%
-                  </td>
-                </tr>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              {Object.entries(SEGMENT_COLORS).map(([seg, color]) => (
+                <div key={seg} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                  <span style={{ font: '500 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3 }}>{seg}</span>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Opportunity Detection & Negotiation Tracking */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Opportunities */}
-        <Card>
-          <CardHeader
-            title="SPS Opportunity Detection"
-            subtitle={`${SPS_OPPORTUNITIES.length} opportunities • EUR ${stats.totalOpportunity.toFixed(0)}K yearly potential`}
-          />
-          <div className="space-y-3 max-h-[480px] overflow-y-auto">
-            {SPS_OPPORTUNITIES.map((opp, idx) => (
-              <div
-                key={idx}
-                className={`border rounded-lg p-4 ${
-                  opp.status === 'Completed' ? 'border-green-200 bg-green-50/50' :
-                  opp.status === 'In Progress' ? 'border-amber-200 bg-amber-50/50' :
-                  'border-gray-200 bg-gray-50/30'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm text-dh-blue">{opp.supplier}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{
-                      backgroundColor: `${SEGMENT_COLORS[opp.segment]}15`,
-                      color: SEGMENT_COLORS[opp.segment],
-                    }}>{opp.segment}</span>
-                    {opp.status === 'Completed' && <Badge variant="success" size="sm">Completed</Badge>}
-                    {opp.status === 'In Progress' && <Badge variant="warning" size="sm">In Progress</Badge>}
-                  </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    opp.type === 'Margin Expansion' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                  }`}>{opp.type}</span>
-                </div>
-
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex gap-2">
-                    <span className="shrink-0">
-                      <svg className="w-3.5 h-3.5 text-red-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                    </span>
-                    <span className="text-gray-700">{opp.opportunity}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="shrink-0">
-                      <svg className="w-3.5 h-3.5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
-                    </span>
-                    <span className="text-gray-500">{opp.blindSpot}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="shrink-0">
-                      <svg className="w-3.5 h-3.5 text-green-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                    </span>
-                    <span className="text-gray-700 font-medium">{opp.action}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
-                  <span className="text-sm font-bold text-dh-red">EUR {opp.yearlySizing}K / yr</span>
-                  {opp.status === 'Not Started' && (
-                    <Button
-                      size="sm"
-                      disabled={negotiations.includes(opp.supplier + opp.opportunity)}
-                      onClick={(e) => { e.stopPropagation(); handleStartNegotiation(opp.supplier); }}
-                    >
-                      Start Negotiation
-                    </Button>
-                  )}
-                  {opp.status === 'In Progress' && (
-                    <Button size="sm" variant="outline">Track Progress</Button>
-                  )}
-                  {opp.status === 'Completed' && (
-                    <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                      Negotiated
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+            </div>
           </div>
-        </Card>
+          <div style={{ font: '500 11px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3, marginBottom: 12 }}>
+            {activeView === 'segmentation'
+              ? 'Importance (Y) vs Productivity (X) — bubble size = GPV'
+              : 'Ops Score (Y) vs Commercial Score (X) — Leverage/Expand vs Monitor/Replace'}
+          </div>
+          <div style={{ height: 320, position: 'relative' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E9EAEC" />
+                <XAxis type="number" dataKey="x" domain={[0, 100]}
+                  tick={{ fontSize: 10, fill: fg3 }} axisLine={false} tickLine={false}
+                  label={{ value: activeView === 'segmentation' ? 'Productivity' : 'Commercial Score', position: 'insideBottom', offset: -10, fontSize: 10, fill: fg3 }}
+                />
+                <YAxis type="number" dataKey="y" domain={[0, 100]}
+                  tick={{ fontSize: 10, fill: fg3 }} axisLine={false} tickLine={false}
+                  label={{ value: activeView === 'segmentation' ? 'Importance' : 'Ops Score', angle: -90, position: 'insideLeft', offset: 5, fontSize: 10, fill: fg3 }}
+                />
+                <ZAxis type="number" dataKey="z" range={[80, 500]} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#141415', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11, fontFamily: 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)' }}
+                  labelFormatter={(_, payload) => {
+                    const p = payload?.[0]?.payload;
+                    return p ? `${p.name} (${p.segment})` : '';
+                  }}
+                />
+                <Scatter data={scatterData}>
+                  {scatterData.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.fill} fillOpacity={0.75} stroke={entry.fill} strokeWidth={1} />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+            {/* Cutoff lines */}
+            <div style={{ position: 'absolute', left: '48%', top: 10, bottom: 40, borderLeft: '1px dashed #D62D0B', opacity: 0.35 }} />
+            <div style={{ position: 'absolute', left: 40, right: 20, top: activeView === 'segmentation' ? '45%' : '50%', borderTop: '1px dashed #D62D0B', opacity: 0.35 }} />
+          </div>
+        </div>
 
-        {/* SPS Scoring Methodology + Profit Sizing */}
-        <div className="space-y-6">
-          {/* Profit Sizing Waterfall */}
-          <Card>
-            <CardHeader title="Profit Uplift Sizing" subtitle="Yearly estimation by opportunity type" />
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-blue-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-blue-600 font-medium">Margin Expansion</p>
-                <p className="text-xl font-bold text-blue-700">
-                  EUR {SPS_OPPORTUNITIES.filter(o => o.type === 'Margin Expansion').reduce((s, o) => s + o.yearlySizing, 0).toFixed(1)}K
-                </p>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-purple-600 font-medium">Growth Opportunity</p>
-                <p className="text-xl font-bold text-purple-700">
-                  EUR {SPS_OPPORTUNITIES.filter(o => o.type === 'Growth Opportunity').reduce((s, o) => s + o.yearlySizing, 0).toFixed(1)}K
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {['Completed', 'In Progress', 'Not Started'].map(status => {
-                const ops = SPS_OPPORTUNITIES.filter(o => o.status === status);
-                const total = ops.reduce((s, o) => s + o.yearlySizing, 0);
-                const pct = (total / stats.totalOpportunity) * 100;
-                return (
-                  <div key={status} className="flex items-center gap-3">
-                    <span className="w-24 text-xs text-gray-600">{status}</span>
-                    <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full flex items-center justify-end pr-2"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: status === 'Completed' ? '#10B981' : status === 'In Progress' ? '#F59E0B' : '#D1D5DB',
-                        }}
-                      >
-                        <span className="text-[10px] font-medium text-white">{total.toFixed(0)}K</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          {/* SPS Methodology Reference */}
-          <Card>
-            <CardHeader title="SPS v1 Scoring Weights" subtitle="Methodology reference" />
-            <div className="space-y-4">
+        {/* Right panel: Radar or Segment Breakdown */}
+        <div style={card}>
+          {selectedSupplier && radarData.length > 0 ? (() => {
+            const s = SPS_SUPPLIERS.find(x => x.supplier === selectedSupplier)!;
+            const risk = getRisk(s.totalScore);
+            return (
               <div>
-                <p className="text-xs font-semibold text-dh-blue mb-2 uppercase tracking-wide">Operations Metrics</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(SCORING_WEIGHTS.ops).map(([key, weight]) => (
-                    <div key={key} className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
-                      <span className="text-xs text-gray-700 capitalize">{key === 'fillRate' ? 'Fill Rate %' : 'On Time Delivery %'}</span>
-                      <span className="text-xs font-bold text-dh-blue">{weight}%</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div>
+                    <div style={{ font: '700 16px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>{selectedSupplier}</div>
+                    <div style={{ font: '500 11px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3 }}>SPS Metric Breakdown</div>
+                  </div>
+                  <button onClick={() => setSelectedSupplier(null)} style={{ border: 0, background: 'transparent', font: '500 11px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3, cursor: 'pointer' }}>Clear</button>
+                </div>
+                <div style={{ height: 200 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData} outerRadius={70}>
+                      <PolarGrid stroke="#E9EAEC" />
+                      <PolarAngleAxis dataKey="metric" tick={{ fontSize: 9, fill: fg3 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8 }} />
+                      <Radar name={selectedSupplier} dataKey="value" stroke="#4629FF" fill="#4629FF" fillOpacity={0.2} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                  {[
+                    { l: 'Ops Score', v: s.opsScore },
+                    { l: 'Commercial', v: s.commercialScore },
+                    { l: 'Total Score', v: s.totalScore },
+                    { l: 'Risk', v: risk },
+                  ].map((m, i) => (
+                    <div key={i} style={{ background: '#F4F5F6', borderRadius: 8, padding: '8px 10px' }}>
+                      <div style={{ font: '500 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3 }}>{m.l}</div>
+                      {typeof m.v === 'number' ? (
+                        <div style={{ font: '700 18px/1.3 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: '#4629FF', marginTop: 2 }}>{m.v}</div>
+                      ) : (
+                        <span style={{ display: 'inline-block', marginTop: 4, background: RISK_BG[m.v as RiskLevel], color: RISK_COLORS[m.v as RiskLevel], font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize' }}>{m.v}</span>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-dh-blue mb-2 uppercase tracking-wide">Commercial Metrics</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(SCORING_WEIGHTS.commercial).map(([key, weight]) => {
-                    const labels: Record<string, string> = {
-                      efficiency: 'Efficiency %',
-                      promoGpvContr: 'Promo GPV Contr. %',
-                      yoyGpvGrowth: 'YoY GPV Growth %',
-                      frontMargin: 'Front Margin %',
-                      backMargin: 'Back Margin %',
-                    };
-                    return (
-                      <div key={key} className="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2">
-                        <span className="text-xs text-gray-700">{labels[key]}</span>
-                        <span className="text-xs font-bold text-green-700">{weight}%</span>
+            );
+          })() : (
+            <div>
+              <div style={{ font: '700 16px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1, marginBottom: 4 }}>Segment Breakdown</div>
+              <div style={{ font: '500 11px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3, marginBottom: 16 }}>GPV & profit share by tier</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {SEGMENT_SUMMARY.map(seg => {
+                  const active = selectedSegment === seg.segment;
+                  return (
+                    <button key={seg.segment} onClick={() => setSelectedSegment(active ? 'all' : seg.segment)} style={{
+                      display: 'block', width: '100%', textAlign: 'left', border: `1px solid ${active ? '#4629FF' : '#E9EAEC'}`,
+                      borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
+                      background: active ? 'rgba(70,41,255,0.04)' : 'transparent',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: SEGMENT_COLORS[seg.segment] }} />
+                          <span style={{ font: '600 12px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>{seg.segment}</span>
+                        </div>
+                        <span style={{ font: '500 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3 }}>{seg.count} suppliers</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div>
+                          <div style={{ font: '500 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3, marginBottom: 4 }}>GPV Share</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ flex: 1, height: 4, background: '#F4F5F6', borderRadius: 200, overflow: 'hidden' }}>
+                              <div style={{ width: `${seg.gpvShare}%`, height: '100%', background: SEGMENT_COLORS[seg.segment], borderRadius: 200 }} />
+                            </div>
+                            <span style={{ font: '600 10px/1 var(--font-mono, monospace)', color: fg1 }}>{seg.gpvShare}%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ font: '500 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3, marginBottom: 4 }}>Profit Share</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ flex: 1, height: 4, background: '#F4F5F6', borderRadius: 200, overflow: 'hidden' }}>
+                              <div style={{ width: `${seg.profitShare}%`, height: '100%', background: '#047538', borderRadius: 200 }} />
+                            </div>
+                            <span style={{ font: '600 10px/1 var(--font-mono, monospace)', color: fg1 }}>{seg.profitShare}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </Card>
+          )}
         </div>
       </div>
 
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={isExportOpen}
-        onClose={() => setIsExportOpen(false)}
-        dataTitle="Supplier Performance Scorecard Data"
-      />
+      {/* ── Supplier Scorecard Table ── */}
+      <div style={card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ font: '700 16px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>Supplier Scorecard</div>
+            <div style={{ font: '500 12px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg2, marginTop: 2 }}>
+              {filteredSuppliers.length} suppliers · Click row for radar detail
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {(['all', 'Key Accounts', 'Standard', 'Niche', 'Long Tail'] as const).map(seg => (
+              <button key={seg} onClick={() => setSelectedSegment(seg)} style={{
+                padding: '6px 12px', borderRadius: 200, cursor: 'pointer',
+                font: '600 11px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)',
+                background: selectedSegment === seg ? '#4629FF' : 'transparent',
+                color: selectedSegment === seg ? '#fff' : fg2,
+                border: `1px solid ${selectedSegment === seg ? '#4629FF' : '#E9EAEC'}`,
+              }}>
+                {seg === 'all' ? 'All' : seg}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#F4F5F6' }}>
+              {['Supplier', 'Segment', 'SKUs', 'Fill Rate', 'OTD', 'FM%', 'BM%', 'YoY GPV', 'Ops', 'Comm.', 'Total', 'Risk', 'Action'].map(h => (
+                <th key={h} style={{
+                  textAlign: h === 'Supplier' || h === 'Segment' ? 'left' : h === 'Action' ? 'center' : 'right',
+                  padding: '10px 12px',
+                  font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)',
+                  color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em',
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredSuppliers.map((row, i) => {
+              const risk = getRisk(row.totalScore);
+              const isSelected = selectedSupplier === row.supplier;
+              return (
+                <tr key={i} onClick={() => setSelectedSupplier(isSelected ? null : row.supplier)} style={{
+                  borderBottom: '1px solid #F4F5F6', cursor: 'pointer',
+                  background: isSelected ? 'rgba(70,41,255,0.03)' : 'transparent',
+                }}>
+                  <td style={{ padding: '12px', font: '600 13px/1.3 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>
+                    {row.supplier}
+                    <div style={{ font: '500 10px/1.3 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg3 }}>{row.category}</div>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <span style={{
+                      background: `${SEGMENT_COLORS[row.segment]}14`,
+                      color: SEGMENT_COLORS[row.segment],
+                      font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)',
+                      padding: '4px 8px', borderRadius: 200,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: SEGMENT_COLORS[row.segment] }} />
+                      {row.segment}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px', font: '500 12px/1 var(--font-mono, monospace)', color: fg2, textAlign: 'right' }}>{row.skuCount}</td>
+                  <td style={{ padding: '12px', font: '600 12px/1 var(--font-mono, monospace)', color: row.fillRate >= 80 ? '#047538' : row.fillRate >= 60 ? '#8F5D00' : '#D62D0B', textAlign: 'right' }}>{row.fillRate}%</td>
+                  <td style={{ padding: '12px', font: '600 12px/1 var(--font-mono, monospace)', color: row.otd >= 70 ? '#047538' : row.otd >= 40 ? '#8F5D00' : '#D62D0B', textAlign: 'right' }}>{row.otd}%</td>
+                  <td style={{ padding: '12px', font: '500 12px/1 var(--font-mono, monospace)', color: fg2, textAlign: 'right' }}>{row.frontMargin}%</td>
+                  <td style={{ padding: '12px', font: '600 12px/1 var(--font-mono, monospace)', color: row.backMargin === 0 ? '#D62D0B' : fg2, textAlign: 'right' }}>
+                    {row.backMargin === 0 ? '0% !' : `${row.backMargin}%`}
+                  </td>
+                  <td style={{ padding: '12px', font: '600 12px/1 var(--font-mono, monospace)', color: row.yoyGpvGrowth >= 0 ? '#047538' : '#D62D0B', textAlign: 'right' }}>
+                    {row.yoyGpvGrowth > 0 ? '+' : ''}{row.yoyGpvGrowth}%
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                      <div style={{ width: 40, height: 5, background: '#F4F5F6', borderRadius: 200, overflow: 'hidden' }}>
+                        <div style={{ width: `${row.opsScore}%`, height: '100%', background: RISK_COLORS[getRisk(row.opsScore)], borderRadius: 200 }} />
+                      </div>
+                      <span style={{ font: '600 11px/1 var(--font-mono, monospace)', color: RISK_COLORS[getRisk(row.opsScore)] }}>{row.opsScore}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                      <div style={{ width: 40, height: 5, background: '#F4F5F6', borderRadius: 200, overflow: 'hidden' }}>
+                        <div style={{ width: `${row.commercialScore}%`, height: '100%', background: RISK_COLORS[getRisk(row.commercialScore)], borderRadius: 200 }} />
+                      </div>
+                      <span style={{ font: '600 11px/1 var(--font-mono, monospace)', color: RISK_COLORS[getRisk(row.commercialScore)] }}>{row.commercialScore}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <span style={{
+                      font: '700 11px/1 var(--font-mono, monospace)', color: '#fff',
+                      background: RISK_COLORS[risk], padding: '3px 8px', borderRadius: 200,
+                    }}>{row.totalScore}</span>
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'right' }}>
+                    <span style={{
+                      background: RISK_BG[risk], color: RISK_COLORS[risk],
+                      font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)',
+                      padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize',
+                    }}>{risk}</span>
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>
+                    {risk === 'high' && (
+                      <button style={{
+                        border: 0, background: '#4629FF', color: '#fff',
+                        font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)',
+                        padding: '5px 10px', borderRadius: 200, cursor: 'pointer',
+                      }}>Renegotiate</button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── Opportunities + Score Trend ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        {/* Opportunities */}
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <div style={{ font: '700 16px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>SPS Opportunities</div>
+              <div style={{ font: '500 12px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg2, marginTop: 2 }}>
+                {SPS_OPPORTUNITIES.length} detected · EUR {stats.totalOpportunity.toFixed(0)}K yearly potential
+              </div>
+            </div>
+            <span style={{ background: '#4629FF', color: '#fff', font: '700 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', padding: '4px 10px', borderRadius: 200 }}>
+              {SPS_OPPORTUNITIES.filter(o => o.status !== 'Completed').length} active
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 420, overflow: 'auto' }}>
+            {SPS_OPPORTUNITIES.map((opp, i) => {
+              const sc = statusColors[opp.status];
+              const tc = typeColors[opp.type];
+              return (
+                <div key={i} style={{ borderRadius: 10, padding: '14px 16px', border: `1px solid ${opp.status === 'Completed' ? '#E5F5EC' : '#E9EAEC'}`, background: opp.status === 'Completed' ? 'rgba(4,117,56,0.02)' : 'transparent' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ font: '600 13px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>{opp.supplier}</span>
+                      <span style={{ background: sc.bg, color: sc.fg, font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', padding: '3px 8px', borderRadius: 200 }}>{opp.status}</span>
+                    </div>
+                    <span style={{ background: tc.bg, color: tc.fg, font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', padding: '3px 8px', borderRadius: 200 }}>{opp.type}</span>
+                  </div>
+                  <div style={{ font: '500 12px/1.5 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg2, marginBottom: 6 }}>{opp.opportunity}</div>
+                  <div style={{ font: '500 11px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: '#4629FF', marginBottom: 8 }}>{opp.action}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ font: '700 13px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: '#D62D0B' }}>EUR {opp.yearlySizing}K / yr</span>
+                    {opp.status === 'Not Started' && (
+                      <button style={{ border: 0, background: '#4629FF', color: '#fff', font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', padding: '5px 12px', borderRadius: 200, cursor: 'pointer' }}>Start</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Score Trend + Methodology */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Score Trend */}
+          <div style={card}>
+            <div style={{ font: '700 16px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1, marginBottom: 4 }}>SPS Score Trend</div>
+            <div style={{ font: '500 12px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg2, marginBottom: 16 }}>Quarterly avg across supplier base</div>
+            <div style={{ height: 180 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={SCORE_TREND} barGap={2}>
+                  <XAxis dataKey="quarter" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: fg3 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: fg3 }} domain={[0, 80]} />
+                  <Tooltip contentStyle={{ backgroundColor: '#141415', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }} />
+                  <Bar dataKey="avgOps" name="Ops" fill="#4629FF" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="avgCommercial" name="Commercial" fill="#047538" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="avgTotal" name="Total" fill="#D62D0B" radius={[3, 3, 0, 0]} />
+                  <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '10px', fontFamily: 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)' }} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Scoring Weights */}
+          <div style={card}>
+            <div style={{ font: '700 16px/1.4 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1, marginBottom: 16 }}>SPS v1 Scoring Weights</div>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: '#4629FF', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Operations Metrics</div>
+              {SCORING_WEIGHTS.ops.map((w, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 8, background: i % 2 === 0 ? '#F4F5F6' : 'transparent', marginBottom: 2 }}>
+                  <span style={{ font: '500 11px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>{w.label}</span>
+                  <span style={{ font: '700 11px/1 var(--font-mono, monospace)', color: '#4629FF' }}>{w.weight}%</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{ font: '600 10px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: '#047538', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Commercial Metrics</div>
+              {SCORING_WEIGHTS.commercial.map((w, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 8, background: i % 2 === 0 ? '#F4F5F6' : 'transparent', marginBottom: 2 }}>
+                  <span style={{ font: '500 11px/1 var(--font-sans, ui-sans-serif, system-ui, sans-serif)', color: fg1 }}>{w.label}</span>
+                  <span style={{ font: '700 11px/1 var(--font-mono, monospace)', color: '#047538' }}>{w.weight}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

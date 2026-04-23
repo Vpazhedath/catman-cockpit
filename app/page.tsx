@@ -1,13 +1,15 @@
 'use client';
 
-import { KPICard } from "@/components/KPICard";
-import { GMVChart } from "@/components/GMVChart";
-import { EngineSignals } from "@/components/EngineSignals";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { SAMPLE_KPIS, UAE_SKU_STATUS_COUNTS } from "@/lib/sample-data";
+import { SAMPLE_KPIS, UAE_SKU_STATUS_COUNTS, SAMPLE_GMV_TREND, SAMPLE_ENGINE_SIGNALS } from '@/lib/sample-data';
+import { useRouter } from 'next/navigation';
 
-// Top performing SKUs - Real data from Talabat UAE
+const STATUS_BARS = [
+  { label: 'Active', count: UAE_SKU_STATUS_COUNTS.active, color: '#047538', pct: 28 },
+  { label: 'On-Hold', count: UAE_SKU_STATUS_COUNTS['on-hold'], color: '#FFC400', pct: 33 },
+  { label: 'Discontinued', count: UAE_SKU_STATUS_COUNTS.discontinued, color: '#D62D0B', pct: 14 },
+  { label: 'Retired', count: UAE_SKU_STATUS_COUNTS.retired, color: '#93949D', pct: 27 },
+];
+
 const TOP_SKUS = [
   { rank: 1, name: 'Nestle Pure Life 1.5L', orders: 3200, growth: '+24%' },
   { rank: 2, name: 'Coca-Cola 330ml Can', orders: 2800, growth: '+12%' },
@@ -16,15 +18,6 @@ const TOP_SKUS = [
   { rank: 5, name: 'Lays Classic Chips 150g', orders: 1920, growth: '+8%' },
 ];
 
-// SKU Status Distribution from BigQuery
-const STATUS_BARS = [
-  { label: 'Active', count: UAE_SKU_STATUS_COUNTS.active, color: 'bg-cp-color-surface-success', pct: 28 },
-  { label: 'On-Hold', count: UAE_SKU_STATUS_COUNTS['on-hold'], color: 'bg-cp-color-surface-warning', pct: 33 },
-  { label: 'Discontinued', count: UAE_SKU_STATUS_COUNTS.discontinued, color: 'bg-cp-color-surface-error', pct: 14 },
-  { label: 'Retired', count: UAE_SKU_STATUS_COUNTS.retired, color: 'bg-cp-color-surface-secondary', pct: 27 },
-];
-
-// Recent activity
 const RECENT_ACTIVITY = [
   { action: 'Price updated', item: 'Almarai Full Cream 1L', time: '2 min ago', type: 'price' },
   { action: 'SKU added', item: 'Oat Milk 1L', time: '15 min ago', type: 'assortment' },
@@ -32,136 +25,163 @@ const RECENT_ACTIVITY = [
   { action: 'Stock alert', item: 'Nestle Pure Life 1.5L', time: '2 hours ago', type: 'alert' },
 ];
 
+const ENGINE_SIGNAL_COLORS: Record<string, { bg: string; fg: string }> = {
+  choice: { bg: '#EDEBFF', fg: '#3A22D5' },
+  affordability: { bg: '#FFF8DF', fg: '#8F5D00' },
+  lifecycle: { bg: '#F7F5FC', fg: '#6635B6' },
+  profitability: { bg: '#E5F5EC', fg: '#047538' },
+};
+
+const ENGINE_LABELS: Record<string, string> = {
+  choice: 'Choice', affordability: 'Affordability', lifecycle: 'Lifecycle', profitability: 'Profitability',
+};
+
+const ROUTE_MAP: Record<string, string> = {
+  assortment: '/assortment', price: '/price', lifecycle: '/lifecycle', profitability: '/profitability',
+};
+
+const fg1 = '#141415';
+const fg2 = '#6C6D73';
+const fg3 = '#93949D';
+const surfLow = '#F4F5F6';
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #E9EAEC', borderRadius: 12, padding: 20 };
+const font = 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)';
+const mono = 'var(--font-mono, monospace)';
+
 export default function CategoryPulsePage() {
+  const router = useRouter();
+
   return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {SAMPLE_KPIS.map((kpi, index) => (
-          <KPICard
-            key={index}
-            label={kpi.label}
-            value={kpi.value}
-            delta={kpi.delta}
-            direction={kpi.direction}
-            subtitle={kpi.subtitle}
-          />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Page header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div>
+          <div style={{ font: `700 28px/1.25 ${font}`, letterSpacing: '-0.01em', color: fg1 }}>Category Pulse</div>
+          <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>Talabat UAE · Jan 2026 · All Categories</div>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        {SAMPLE_KPIS.map((k, i) => (
+          <div key={i} style={card}>
+            <div style={{ font: `600 11px/1 ${font}`, color: fg2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.label}</div>
+            <div style={{ font: `700 28px/1.2 ${font}`, color: fg1, marginTop: 8, letterSpacing: '-0.01em' }}>{k.value}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              <span style={{ font: `600 12px/1 ${font}`, color: k.direction === 'up' ? '#047538' : '#D62D0B' }}>{k.delta}</span>
+              <span style={{ font: `500 11px/1 ${font}`, color: fg3 }}>{k.subtitle}</span>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* SKU Status Distribution - Real BigQuery Data */}
-      <Card>
-        <CardHeader
-          title="SKU Status Distribution"
-          subtitle={`${(UAE_SKU_STATUS_COUNTS.active + UAE_SKU_STATUS_COUNTS['on-hold'] + UAE_SKU_STATUS_COUNTS.discontinued + UAE_SKU_STATUS_COUNTS.retired).toLocaleString()} total SKUs in Talabat UAE`}
-        />
-        <div className="flex h-3 rounded-full overflow-hidden mb-4">
-          {STATUS_BARS.map((status, idx) => (
-            <div
-              key={idx}
-              className={`${status.color}`}
-              style={{ width: `${status.pct}%` }}
-            />
-          ))}
+      {/* SKU Status Distribution */}
+      <div style={card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div>
+            <div style={{ font: `700 16px/1.4 ${font}`, color: fg1 }}>SKU Status Distribution</div>
+            <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginTop: 2 }}>162,736 total SKUs in Talabat UAE</div>
+          </div>
+          <button onClick={() => router.push('/sku-tower')} style={{ border: 0, background: 'transparent', font: `600 12px/1 ${font}`, color: '#4629FF', cursor: 'pointer' }}>View SKU Tower →</button>
         </div>
-        <div className="grid grid-cols-4 gap-4">
-          {STATUS_BARS.map((status, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-sm ${status.color}`} />
+        <div style={{ display: 'flex', height: 10, borderRadius: 200, overflow: 'hidden', marginBottom: 14 }}>
+          {STATUS_BARS.map((s, i) => <div key={i} style={{ width: `${s.pct}%`, background: s.color }} />)}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          {STATUS_BARS.map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
               <div>
-                <p className="text-sm font-medium text-cp-color-text-primary">{status.count.toLocaleString()}</p>
-                <p className="text-xs text-cp-color-text-secondary">{status.label}</p>
+                <div style={{ font: `600 14px/1.2 ${font}`, color: fg1 }}>{s.count.toLocaleString()}</div>
+                <div style={{ font: `500 11px/1.2 ${font}`, color: fg2 }}>{s.label}</div>
               </div>
             </div>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {/* Main Content - 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left - GMV Chart */}
-        <div className="lg:col-span-2">
-          <GMVChart />
+      {/* GMV + Engine Signals */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+        {/* GMV Chart */}
+        <div style={card}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>GMV Trend</div>
+          <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 20 }}>UAE — Real data from BigQuery</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 200 }}>
+            {SAMPLE_GMV_TREND.map((d, i) => {
+              const maxV = 32000000;
+              const h = (d.value / maxV) * 100;
+              const isLast = i === SAMPLE_GMV_TREND.length - 1;
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ font: `600 11px/1 ${font}`, color: fg1 }}>AED {(d.value / 1e6).toFixed(1)}M</div>
+                  <div style={{ width: '100%', maxWidth: 80, height: `${h}%`, background: isLast ? '#4629FF' : '#E9EAEC', borderRadius: 6, transition: 'height 400ms ease' }} />
+                  <div style={{ font: `500 11px/1 ${font}`, color: fg2 }}>{d.day}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Right - Engine Signals */}
-        <div>
-          <EngineSignals />
+        {/* Engine Signals */}
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ font: `700 16px/1.4 ${font}`, color: fg1 }}>Engine Signals</div>
+            <span style={{ background: '#4629FF', color: '#fff', font: `700 10px/1 ${font}`, padding: '4px 10px', borderRadius: 200 }}>{SAMPLE_ENGINE_SIGNALS.length} active</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {SAMPLE_ENGINE_SIGNALS.map((sig, i) => {
+              const sc = ENGINE_SIGNAL_COLORS[sig.engine] || { bg: '#F4F5F6', fg: '#93949D' };
+              return (
+                <div key={i} style={{ background: sc.bg + '30', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: sc.fg }} />
+                    <span style={{ font: `600 10px/1 ${font}`, color: sc.fg, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{ENGINE_LABELS[sig.engine] || sig.engine}</span>
+                  </div>
+                  <div style={{ font: `500 12px/1.4 ${font}`, color: fg1, marginBottom: 6 }}>{sig.message}</div>
+                  <button onClick={() => router.push(ROUTE_MAP[sig.ctaTab] || '/')} style={{ border: 0, background: 'transparent', font: `600 11px/1 ${font}`, color: '#4629FF', cursor: 'pointer', padding: 0 }}>{sig.ctaLabel}</button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Bottom Section - 2 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Performing SKUs */}
-        <Card>
-          <CardHeader title="Top Performing SKUs" subtitle="By order volume this week" />
-          <div className="space-y-3">
-            {TOP_SKUS.map((sku) => (
-              <div key={sku.rank} className="flex items-center gap-4 p-2 rounded-lg hover:bg-cp-color-surface-secondary transition">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  sku.rank === 1 ? 'bg-cp-color-surface-warning-subtle text-cp-color-text-warning' :
-                  sku.rank === 2 ? 'bg-cp-color-surface-secondary text-cp-color-text-secondary' :
-                  sku.rank === 3 ? 'bg-cp-color-surface-brand-subtle text-cp-color-text-brand' :
-                  'bg-cp-color-surface-secondary text-cp-color-text-tertiary'
-                }`}>
-                  {sku.rank}
+      {/* Bottom: Top SKUs + Recent Activity */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        {/* Top SKUs */}
+        <div style={card}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 14 }}>Top Performing SKUs</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {TOP_SKUS.map(sku => (
+              <div key={sku.rank} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', borderRadius: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: sku.rank === 1 ? '#FFF8DF' : surfLow, color: sku.rank === 1 ? '#8F5D00' : fg2, display: 'flex', alignItems: 'center', justifyContent: 'center', font: `700 11px/1 ${font}`, flexShrink: 0 }}>{sku.rank}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ font: `600 13px/1.3 ${font}`, color: fg1 }}>{sku.name}</div>
+                  <div style={{ font: `500 11px/1.3 ${font}`, color: fg2 }}>{sku.orders.toLocaleString()} orders</div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-cp-color-text-primary">{sku.name}</p>
-                  <p className="text-xs text-cp-color-text-secondary">{sku.orders.toLocaleString()} orders</p>
-                </div>
-                <Badge variant={sku.growth.startsWith('+') ? 'success' : 'danger'} size="sm">
-                  {sku.growth}
-                </Badge>
+                <span style={{ font: `600 11px/1 ${font}`, color: '#047538', background: '#E5F5EC', padding: '4px 8px', borderRadius: 200 }}>{sku.growth}</span>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* Recent Activity */}
-        <Card>
-          <CardHeader title="Recent Activity" subtitle="Latest changes across all engines" />
-          <div className="space-y-3">
-            {RECENT_ACTIVITY.map((activity, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-2 rounded-lg hover:bg-cp-color-surface-secondary transition">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  activity.type === 'price' ? 'bg-cp-color-surface-information-subtle' :
-                  activity.type === 'assortment' ? 'bg-cp-color-surface-success-subtle' :
-                  activity.type === 'promo' ? 'bg-cp-color-surface-brand-subtle' :
-                  'bg-cp-color-surface-warning-subtle'
-                }`}>
-                  {activity.type === 'price' && (
-                    <svg className="w-4 h-4 text-cp-color-text-information" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                  )}
-                  {activity.type === 'assortment' && (
-                    <svg className="w-4 h-4 text-cp-color-text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  )}
-                  {activity.type === 'promo' && (
-                    <svg className="w-4 h-4 text-cp-color-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                    </svg>
-                  )}
-                  {activity.type === 'alert' && (
-                    <svg className="w-4 h-4 text-cp-color-text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  )}
+        <div style={card}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 14 }}>Recent Activity</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {RECENT_ACTIVITY.map((a, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', borderRadius: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: a.type === 'price' ? '#F7F5FC' : a.type === 'assortment' ? '#E5F5EC' : a.type === 'promo' ? '#EDEBFF' : '#FFF8DF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, font: `600 12px/1 ${font}`, color: fg3 }}>
+                  {a.type === 'price' ? '$' : a.type === 'assortment' ? '+' : a.type === 'promo' ? '%' : '!'}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-cp-color-text-primary">
-                    <span className="font-medium">{activity.action}</span>
-                    <span className="text-cp-color-text-secondary"> • {activity.item}</span>
-                  </p>
-                  <p className="text-xs text-cp-color-text-tertiary">{activity.time}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ font: `500 13px/1.3 ${font}`, color: fg1 }}><strong>{a.action}</strong> · {a.item}</div>
+                  <div style={{ font: `500 11px/1.3 ${font}`, color: fg3 }}>{a.time}</div>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

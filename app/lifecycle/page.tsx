@@ -1,312 +1,254 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Card, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import {
   SKULifecycleEngine,
   SAMPLE_LIFECYCLE_SKUS,
-  type SKULifecycleState,
   type SKUMaturityStage,
   type SKUEfficiency,
   LIFECYCLE_THRESHOLDS,
 } from '@/lib/lifecycle-engine';
 
-// Stage colors
-const STAGE_COLORS: Record<SKUMaturityStage, string> = {
-  new: 'bg-blue-500',
-  probation: 'bg-purple-500',
-  mature: 'bg-green-500',
-  review: 'bg-amber-500',
-  'phase-out': 'bg-red-500',
+const stageColors: Record<SKUMaturityStage, { bg: string; fg: string }> = {
+  new: { bg: '#EDEBFF', fg: '#4629FF' },
+  probation: { bg: '#F7F5FC', fg: '#6635B6' },
+  mature: { bg: '#E5F5EC', fg: '#047538' },
+  review: { bg: '#FFF8DF', fg: '#8F5D00' },
+  'phase-out': { bg: '#FCEBE8', fg: '#BF280A' },
+};
+const stageLabels: Record<SKUMaturityStage, string> = {
+  new: 'New', probation: 'Probation', mature: 'Mature', review: 'Review', 'phase-out': 'Phase-out',
+};
+const stageSubs: Record<SKUMaturityStage, string> = {
+  new: '0–30 days', probation: '31–90 days', mature: '>90 days', review: 'Action needed', 'phase-out': 'Discontinued',
 };
 
-const EFFICIENCY_COLORS: Record<SKUEfficiency, string> = {
-  efficient: 'text-green-600',
-  'slow-mover': 'text-amber-600',
-  'zero-mover': 'text-red-600',
-  'low-availability': 'text-orange-600',
+const effLabels: Record<SKUEfficiency, string> = {
+  efficient: 'Efficient (>1 unit/wk)', 'slow-mover': 'Slow Mover (<1 unit/wk)', 'zero-mover': 'Zero Mover (0 units)', 'low-availability': 'Low Availability (<80%)',
 };
+const effColors: Record<SKUEfficiency, { bar: string; text: string }> = {
+  efficient: { bar: '#047538', text: '#047538' },
+  'slow-mover': { bar: '#FFC400', text: '#8F5D00' },
+  'zero-mover': { bar: '#D62D0B', text: '#D62D0B' },
+  'low-availability': { bar: '#E07000', text: '#E07000' },
+};
+
+const fg1 = '#141415';
+const fg2 = '#6C6D73';
+const fg3 = '#93949D';
+const font = 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)';
+const mono = 'var(--font-mono, monospace)';
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #E9EAEC', borderRadius: 12 };
 
 export default function LifecyclePage() {
   const [selectedStage, setSelectedStage] = useState<SKUMaturityStage | 'all'>('all');
   const [selectedEfficiency, setSelectedEfficiency] = useState<SKUEfficiency | 'all'>('all');
 
-  // Process SKUs through lifecycle engine
-  const processedSKUs = useMemo(() => {
-    return SKULifecycleEngine.processSKUBatch(SAMPLE_LIFECYCLE_SKUS);
-  }, []);
+  const processedSKUs = useMemo(() => SKULifecycleEngine.processSKUBatch(SAMPLE_LIFECYCLE_SKUS), []);
 
-  // Calculate stage counts
   const stageCounts = useMemo(() => {
-    const counts: Record<SKUMaturityStage, number> = {
-      new: 0,
-      probation: 0,
-      mature: 0,
-      review: 0,
-      'phase-out': 0,
-    };
-    processedSKUs.forEach(sku => {
-      counts[sku.maturityStage]++;
-    });
-    return counts;
+    const c: Record<SKUMaturityStage, number> = { new: 0, probation: 0, mature: 0, review: 0, 'phase-out': 0 };
+    processedSKUs.forEach(s => { c[s.maturityStage]++; });
+    return c;
   }, [processedSKUs]);
 
-  // Calculate efficiency counts
-  const efficiencyCounts = useMemo(() => {
-    const counts: Record<SKUEfficiency, number> = {
-      efficient: 0,
-      'slow-mover': 0,
-      'zero-mover': 0,
-      'low-availability': 0,
-    };
-    processedSKUs.forEach(sku => {
-      counts[sku.efficiency]++;
-    });
-    return counts;
+  const effCounts = useMemo(() => {
+    const c: Record<SKUEfficiency, number> = { efficient: 0, 'slow-mover': 0, 'zero-mover': 0, 'low-availability': 0 };
+    processedSKUs.forEach(s => { c[s.efficiency]++; });
+    return c;
   }, [processedSKUs]);
 
-  // Count recommendations
-  const recommendationCount = processedSKUs.filter(sku => sku.recommendedAction).length;
-
-  // Filter SKUs
-  const filteredSKUs = processedSKUs.filter(sku => {
-    if (selectedStage !== 'all' && sku.maturityStage !== selectedStage) return false;
-    if (selectedEfficiency !== 'all' && sku.efficiency !== selectedEfficiency) return false;
-    return true;
-  });
-
+  const recommendationCount = processedSKUs.filter(s => s.recommendedAction).length;
   const totalSKUs = processedSKUs.length;
 
+  const filteredSKUs = useMemo(() => {
+    return processedSKUs.filter(s => {
+      if (selectedStage !== 'all' && s.maturityStage !== selectedStage) return false;
+      if (selectedEfficiency !== 'all' && s.efficiency !== selectedEfficiency) return false;
+      return true;
+    });
+  }, [processedSKUs, selectedStage, selectedEfficiency]);
+
+  const summaryCards = [
+    { label: 'Total SKUs', value: String(totalSKUs), color: fg1, sub: 'Across all lifecycle stages' },
+    { label: 'New SKUs (≤30 days)', value: String(stageCounts.new), color: '#4629FF', sub: 'In launch period' },
+    { label: 'Non-performing', value: String(effCounts['zero-mover'] + effCounts['slow-mover']), color: '#D62D0B', sub: 'Zero/Slow movers' },
+    { label: 'Actions Required', value: String(recommendationCount), color: '#8F5D00', sub: 'Recommendations pending' },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <p className="text-sm text-gray-500">Total SKUs</p>
-          <p className="text-2xl font-bold text-dh-blue">{totalSKUs}</p>
-          <p className="text-xs text-gray-400 mt-1">Across all lifecycle stages</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-500">New SKUs (≤30 days)</p>
-          <p className="text-2xl font-bold text-blue-600">{stageCounts.new}</p>
-          <p className="text-xs text-gray-400 mt-1">In launch period</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Non-performing</p>
-          <p className="text-2xl font-bold text-red-600">
-            {efficiencyCounts['zero-mover'] + efficiencyCounts['slow-mover']}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">Zero/Slow movers</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-gray-500">Actions Required</p>
-          <p className="text-2xl font-bold text-amber-600">{recommendationCount}</p>
-          <p className="text-xs text-gray-400 mt-1">Recommendations pending</p>
-        </Card>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Header */}
+      <div>
+        <div style={{ font: `700 28px/1.25 ${font}`, letterSpacing: '-0.01em', color: fg1 }}>Lifecycle</div>
+        <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>Lifecycle Engine · SKU maturity tracking & efficiency monitoring</div>
+      </div>
+
+      {/* Summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        {summaryCards.map((s, i) => (
+          <div key={i} style={{ ...card, padding: '14px 18px' }}>
+            <div style={{ font: `500 11px/1 ${font}`, color: fg2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>
+            <div style={{ font: `700 22px/1.2 ${font}`, color: s.color, marginTop: 6 }}>{s.value}</div>
+            <div style={{ font: `500 11px/1.3 ${font}`, color: fg3, marginTop: 4 }}>{s.sub}</div>
+          </div>
+        ))}
       </div>
 
       {/* Lifecycle Funnel */}
-      <Card>
-        <CardHeader
-          title="SKU Lifecycle Funnel"
-          subtitle={`${totalSKUs} SKUs across maturity stages`}
-        />
-        <div className="flex items-end justify-center gap-6 py-8">
+      <div style={{ ...card, padding: 20 }}>
+        <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>SKU Lifecycle Funnel</div>
+        <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 20 }}>{totalSKUs} SKUs across maturity stages</div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 20, paddingBottom: 8 }}>
           {(['new', 'probation', 'mature', 'review', 'phase-out'] as SKUMaturityStage[]).map((stage, idx) => {
             const count = stageCounts[stage];
-            const width = 260 - idx * 35;
-            const labels: Record<SKUMaturityStage, string> = {
-              new: 'New',
-              probation: 'Probation',
-              mature: 'Mature',
-              review: 'Review',
-              'phase-out': 'Phase-out',
-            };
+            const sc = stageColors[stage];
+            const widths = [200, 175, 240, 155, 130];
+            const active = selectedStage === stage;
             return (
-              <div key={stage} className="flex flex-col items-center cursor-pointer group"
-                   onClick={() => setSelectedStage(selectedStage === stage ? 'all' : stage)}>
-                <div
-                  className={`${STAGE_COLORS[stage]} rounded-lg flex items-center justify-center text-white font-medium transition-all group-hover:scale-105 ${selectedStage === stage ? 'ring-2 ring-offset-2 ring-dh-red' : ''}`}
-                  style={{ width: `${width}px`, height: '55px' }}
-                >
+              <div key={stage} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => setSelectedStage(selectedStage === stage ? 'all' : stage)}>
+                <div style={{
+                  width: widths[idx], height: 52, borderRadius: 10,
+                  background: sc.bg, border: active ? `2px solid ${sc.fg}` : '2px solid transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  font: `700 14px/1 ${font}`, color: sc.fg,
+                  transition: 'border 150ms ease, transform 150ms ease',
+                  transform: active ? 'scale(1.04)' : 'scale(1)',
+                }}>
                   {count} SKUs
                 </div>
-                <p className="text-sm font-medium text-gray-600 mt-2">{labels[stage]}</p>
-                <p className="text-xs text-gray-400">
-                  {stage === 'new' ? '0-30 days' :
-                   stage === 'probation' ? '31-90 days' :
-                   stage === 'mature' ? '>90 days' :
-                   stage === 'review' ? 'Action needed' : 'Discontinued'}
-                </p>
+                <div style={{ font: `600 12px/1.3 ${font}`, color: fg1, marginTop: 8 }}>{stageLabels[stage]}</div>
+                <div style={{ font: `500 10px/1.3 ${font}`, color: fg3, marginTop: 2 }}>{stageSubs[stage]}</div>
               </div>
             );
           })}
         </div>
-      </Card>
+      </div>
 
-      {/* Efficiency Distribution & Recommendations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Efficiency + Recommendations */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* Efficiency Distribution */}
-        <Card>
-          <CardHeader title="Efficiency Distribution" subtitle="By sales velocity" />
-          <div className="space-y-4">
-            {(['efficient', 'slow-mover', 'zero-mover', 'low-availability'] as SKUEfficiency[]).map(efficiency => {
-              const count = efficiencyCounts[efficiency];
-              const percentage = (count / totalSKUs) * 100;
-              const labels: Record<SKUEfficiency, string> = {
-                efficient: 'Efficient (>1 unit/wk)',
-                'slow-mover': 'Slow Mover (<1 unit/wk)',
-                'zero-mover': 'Zero Mover (0 units)',
-                'low-availability': 'Low Availability (<80%)',
-              };
-              const colors: Record<SKUEfficiency, string> = {
-                efficient: 'bg-green-500',
-                'slow-mover': 'bg-amber-500',
-                'zero-mover': 'bg-red-500',
-                'low-availability': 'bg-orange-500',
-              };
-
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>Efficiency Distribution</div>
+          <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 16 }}>By sales velocity</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {(['efficient', 'slow-mover', 'zero-mover', 'low-availability'] as SKUEfficiency[]).map(eff => {
+              const count = effCounts[eff];
+              const pct = totalSKUs > 0 ? (count / totalSKUs) * 100 : 0;
+              const ec = effColors[eff];
+              const active = selectedEfficiency === eff;
               return (
-                <div
-                  key={efficiency}
-                  className="cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition"
-                  onClick={() => setSelectedEfficiency(selectedEfficiency === efficiency ? 'all' : efficiency)}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm font-medium ${EFFICIENCY_COLORS[efficiency]}`}>
-                      {labels[efficiency]}
-                    </span>
-                    <span className="text-sm text-gray-500">{count} SKUs ({percentage.toFixed(0)}%)</span>
+                <div key={eff} style={{ cursor: 'pointer', padding: '8px 10px', borderRadius: 8, background: active ? '#F4F5F6' : 'transparent', transition: 'background 150ms ease' }}
+                  onClick={() => setSelectedEfficiency(selectedEfficiency === eff ? 'all' : eff)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ font: `600 12px/1.3 ${font}`, color: ec.text }}>{effLabels[eff]}</span>
+                    <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>{count} SKUs ({pct.toFixed(0)}%)</span>
                   </div>
-                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${colors[efficiency]} transition-all duration-300`}
-                      style={{ width: `${percentage}%` }}
-                    />
+                  <div style={{ height: 6, background: '#F4F5F6', borderRadius: 200, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: ec.bar, borderRadius: 200, transition: 'width 300ms ease' }} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </Card>
+        </div>
 
         {/* Active Recommendations */}
-        <Card>
-          <CardHeader
-            title="Active Recommendations"
-            subtitle={`${recommendationCount} actions pending`}
-          />
-          <div className="space-y-3">
-            {processedSKUs.filter(sku => sku.recommendedAction).slice(0, 5).map(sku => (
-              <div key={sku.skuId} className="border border-gray-100 rounded-lg p-3">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-medium text-dh-blue text-sm">{sku.name}</p>
-                    <p className="text-xs text-gray-500">{sku.category} • {sku.supplier}</p>
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>Active Recommendations</div>
+          <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 16 }}>{recommendationCount} actions pending</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {processedSKUs.filter(s => s.recommendedAction).slice(0, 5).map(sku => {
+              const pr = sku.recommendedAction!;
+              const prStyle = pr.priority === 'high' ? { bg: '#FCEBE8', fg: '#BF280A' } : pr.priority === 'medium' ? { bg: '#FFF8DF', fg: '#8F5D00' } : { bg: '#F4F5F6', fg: fg3 };
+              return (
+                <div key={sku.skuId} style={{ border: '1px solid #E9EAEC', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <div>
+                      <div style={{ font: `600 13px/1.3 ${font}`, color: fg1 }}>{sku.name}</div>
+                      <div style={{ font: `500 11px/1.3 ${font}`, color: fg3, marginTop: 2 }}>{sku.category} · {sku.supplier}</div>
+                    </div>
+                    <span style={{ background: prStyle.bg, color: prStyle.fg, font: `600 9px/1 ${font}`, padding: '3px 8px', borderRadius: 200, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{pr.priority}</span>
                   </div>
-                  <Badge
-                    variant={sku.recommendedAction?.priority === 'high' ? 'danger' :
-                            sku.recommendedAction?.priority === 'medium' ? 'warning' : 'default'}
-                    size="sm"
-                  >
-                    {sku.recommendedAction?.priority}
-                  </Badge>
+                  <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 8 }}>{pr.reason}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ font: `500 10px/1 ${font}`, color: fg3 }}>Impact: {pr.estimatedImpact}</span>
+                    <button style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #E9EAEC', background: '#fff', color: '#4629FF', font: `600 11px/1 ${font}`, cursor: 'pointer' }}>Take Action</button>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-2">{sku.recommendedAction?.reason}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">
-                    Impact: {sku.recommendedAction?.estimatedImpact}
-                  </span>
-                  <Button size="sm" variant="outline">
-                    Take Action
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {recommendationCount === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-sm">No recommendations at this time</p>
-                <p className="text-xs mt-1">All SKUs are performing well</p>
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <div style={{ font: `500 13px/1.4 ${font}`, color: fg3 }}>No recommendations at this time</div>
+                <div style={{ font: `500 11px/1.4 ${font}`, color: fg3, marginTop: 4 }}>All SKUs are performing well</div>
               </div>
             )}
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* SKU Lifecycle Table */}
-      <Card padding="none">
-        <div className="p-5 border-b border-gray-100">
-          <CardHeader title="SKU Lifecycle Details" subtitle="All SKUs with lifecycle metrics" />
+      <div style={{ ...card, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #E9EAEC' }}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1 }}>SKU Lifecycle Details</div>
+          <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginTop: 2 }}>All SKUs with lifecycle metrics</div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">SKU</th>
-                <th className="text-center px-5 py-3 text-xs font-medium text-gray-500 uppercase">Stage</th>
-                <th className="text-center px-5 py-3 text-xs font-medium text-gray-500 uppercase">Efficiency</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Days</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Units/Wk</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Avail%</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">DOH</th>
-                <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Shrink%</th>
-                <th className="text-center px-5 py-3 text-xs font-medium text-gray-500 uppercase">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredSKUs.map(sku => (
-                <tr key={sku.skuId} className="hover:bg-gray-50">
-                  <td className="px-5 py-3">
-                    <p className="text-sm font-medium text-dh-blue">{sku.name}</p>
-                    <p className="text-xs text-gray-500">{sku.category}</p>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#F4F5F6' }}>
+              {['SKU', 'Stage', 'Efficiency', 'Days', 'Units/Wk', 'Avail%', 'DOH', 'Shrink%', 'Action'].map(h => (
+                <th key={h} style={{ textAlign: h === 'SKU' ? 'left' : h === 'Stage' || h === 'Efficiency' || h === 'Action' ? 'center' : 'right', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredSKUs.map(sku => {
+              const sc = stageColors[sku.maturityStage];
+              const ec = effColors[sku.efficiency];
+              return (
+                <tr key={sku.skuId} style={{ borderBottom: '1px solid #F4F5F6' }}>
+                  <td style={{ padding: '12px 14px' }}>
+                    <div style={{ font: `600 13px/1.3 ${font}`, color: fg1 }}>{sku.name}</div>
+                    <div style={{ font: `500 11px/1.3 ${font}`, color: fg3 }}>{sku.category}</div>
                   </td>
-                  <td className="px-5 py-3 text-center">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${STAGE_COLORS[sku.maturityStage]}`}>
-                      {sku.maturityStage}
-                    </span>
+                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <span style={{ background: sc.bg, color: sc.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{sku.maturityStage.replace('-', ' ')}</span>
                   </td>
-                  <td className="px-5 py-3 text-center">
-                    <span className={`text-sm font-medium ${EFFICIENCY_COLORS[sku.efficiency]}`}>
-                      {sku.efficiency}
-                    </span>
+                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <span style={{ font: `600 11px/1 ${font}`, color: ec.text, textTransform: 'capitalize' }}>{sku.efficiency.replace('-', ' ')}</span>
                   </td>
-                  <td className="px-5 py-3 text-right text-sm text-gray-600">{sku.daysInAssortment}</td>
-                  <td className="px-5 py-3 text-right text-sm font-medium">{sku.weeklyUnitsSold}</td>
-                  <td className="px-5 py-3 text-right">
-                    <span className={`text-sm ${sku.availability >= 90 ? 'text-green-600' : sku.availability >= 70 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {sku.availability}%
-                    </span>
+                  <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>{sku.daysInAssortment}</td>
+                  <td style={{ padding: '12px 14px', font: `600 12px/1 ${mono}`, color: fg1, textAlign: 'right' }}>{sku.weeklyUnitsSold}</td>
+                  <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                    <span style={{ font: `500 12px/1 ${mono}`, color: sku.availability >= 90 ? '#047538' : sku.availability >= 70 ? '#8F5D00' : '#D62D0B' }}>{sku.availability}%</span>
                   </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className={`text-sm ${sku.daysOnHand <= LIFECYCLE_THRESHOLDS.targetDaysOnHand ? 'text-green-600' : sku.daysOnHand <= LIFECYCLE_THRESHOLDS.warningDaysOnHand ? 'text-amber-600' : 'text-red-600'}`}>
-                      {sku.daysOnHand}
-                    </span>
+                  <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                    <span style={{ font: `500 12px/1 ${mono}`, color: sku.daysOnHand <= LIFECYCLE_THRESHOLDS.targetDaysOnHand ? '#047538' : sku.daysOnHand <= LIFECYCLE_THRESHOLDS.warningDaysOnHand ? '#8F5D00' : '#D62D0B' }}>{sku.daysOnHand}</span>
                   </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className={`text-sm ${sku.shrinkage <= 10 ? 'text-green-600' : sku.shrinkage <= 20 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {sku.shrinkage}%
-                    </span>
+                  <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                    <span style={{ font: `500 12px/1 ${mono}`, color: sku.shrinkage <= 10 ? '#047538' : sku.shrinkage <= 20 ? '#8F5D00' : '#D62D0B' }}>{sku.shrinkage}%</span>
                   </td>
-                  <td className="px-5 py-3 text-center">
+                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                     {sku.recommendedAction ? (
-                      <Button size="sm" variant="outline">
+                      <button style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #E9EAEC', background: '#fff', color: '#4629FF', font: `600 11px/1 ${font}`, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {sku.recommendedAction.type === 'discontinue' ? 'Discontinue' :
                          sku.recommendedAction.type === 'clearance' ? `Clear ${sku.clearanceDiscount}%` :
                          sku.recommendedAction.type === 'status-on-hold' ? 'Hold' :
-                         sku.recommendedAction.type === 'range-expansion' ? 'Expand' : 'Review'}
-                      </Button>
+                         sku.recommendedAction.type === 'range-expansion' ? 'Expand' :
+                         sku.recommendedAction.type === 'supplier-negotiation' ? 'Negotiate' : 'Review'}
+                      </button>
                     ) : (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span style={{ font: `500 11px/1 ${font}`, color: fg3 }}>—</span>
                     )}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
