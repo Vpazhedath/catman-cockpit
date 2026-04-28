@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import { useTheme } from '@/lib/ThemeContext';
+
+const font = 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)';
 
 const SETTINGS_CONFIG = [
   {
@@ -48,114 +48,134 @@ const NOTIFICATION_RULES = [
   { event: 'Clearance completed', channels: ['In-app'], enabled: false },
 ];
 
+const DATA_SOURCES = [
+  { name: 'Competitor Prices', status: 'connected', lastSync: '2 hours ago' },
+  { name: 'Nielsen Data', status: 'connected', lastSync: 'Daily at 6am' },
+  { name: 'Search Trends', status: 'connected', lastSync: '4 hours ago' },
+  { name: 'Internal Sales', status: 'connected', lastSync: 'Real-time' },
+  { name: 'Inventory System', status: 'connected', lastSync: 'Real-time' },
+  { name: 'Supplier Portal', status: 'error', lastSync: 'Failed 2 days ago' },
+];
+
 export default function SettingsPage() {
+  const { theme } = useTheme();
+  const t = theme === 'dark';
+
+  const fg1 = t ? '#fff' : '#141415';
+  const fg2 = t ? '#b9bac1' : '#6C6D73';
+  const fg3 = t ? '#6C6D73' : '#93949D';
+  const surfPrimary = t ? '#1E1E20' : '#fff';
+  const surfSecondary = t ? '#343437' : '#F4F5F6';
+  const border = t ? '#343437' : '#E9EAEC';
+
+  const cardStyle: React.CSSProperties = {
+    background: surfPrimary,
+    border: `1px solid ${border}`,
+    borderRadius: 12,
+    padding: 20,
+  };
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="text-2xl font-bold text-dh-blue">Engine Settings</h1>
-          <p className="text-gray-500 mt-1">Configure thresholds and automation rules</p>
+          <div style={{ font: `700 28px/1.25 ${font}`, letterSpacing: '-0.01em', color: fg1 }}>Engine Settings</div>
+          <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>Configure thresholds and automation rules</div>
         </div>
-        <Button>Save Changes</Button>
+        <button style={{ background: '#4629FF', color: '#fff', border: 0, borderRadius: 8, padding: '10px 20px', font: `600 13px/1 ${font}`, cursor: 'pointer' }}>Save Changes</button>
       </div>
 
       {/* Settings Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
         {SETTINGS_CONFIG.map((section) => (
-          <Card key={section.category}>
-            <CardHeader title={section.category} />
-            <div className="space-y-4">
+          <div key={section.category} style={cardStyle}>
+            <div style={{ font: `600 14px/1.4 ${font}`, color: fg1, marginBottom: 16 }}>{section.category}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {section.settings.map((setting) => (
-                <div key={setting.name} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div key={setting.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${border}` }}>
                   <div>
-                    <p className="text-sm font-medium text-gray-700">{setting.name}</p>
-                    <p className="text-xs text-gray-400">{setting.description}</p>
+                    <div style={{ font: `500 13px/1.3 ${font}`, color: fg1 }}>{setting.name}</div>
+                    <div style={{ font: `500 11px/1.3 ${font}`, color: fg3, marginTop: 2 }}>{setting.description}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-dh-blue">{setting.value}</span>
-                    <Button variant="ghost" size="sm">Edit</Button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ font: `600 13px/1 ${font}`, color: '#4629FF' }}>{setting.value}</span>
+                    <button style={{ border: 0, background: 'transparent', font: `500 11px/1 ${font}`, color: fg3, cursor: 'pointer' }}>Edit</button>
                   </div>
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
       {/* Notification Rules */}
-      <Card>
-        <CardHeader
-          title="Notification Rules"
-          subtitle="Configure when and how you receive alerts"
-        />
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Event</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Channels</th>
-                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Enabled</th>
+      <div style={cardStyle}>
+        <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>Notification Rules</div>
+        <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 16 }}>Configure when and how you receive alerts</div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: surfSecondary }}>
+              <th style={{ textAlign: 'left', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Event</th>
+              <th style={{ textAlign: 'left', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Channels</th>
+              <th style={{ textAlign: 'center', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Enabled</th>
+            </tr>
+          </thead>
+          <tbody>
+            {NOTIFICATION_RULES.map((rule) => (
+              <tr key={rule.event} style={{ borderBottom: `1px solid ${border}` }}>
+                <td style={{ padding: '12px 14px', font: `500 13px/1 ${font}`, color: fg1 }}>{rule.event}</td>
+                <td style={{ padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {rule.channels.map((channel) => (
+                      <span key={channel} style={{ background: t ? 'rgba(70,41,255,0.15)' : '#EDEBFF', color: '#4629FF', font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200 }}>{channel}</span>
+                    ))}
+                  </div>
+                </td>
+                <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                  <button style={{
+                    position: 'relative',
+                    width: 44,
+                    height: 24,
+                    borderRadius: 200,
+                    border: 0,
+                    cursor: 'pointer',
+                    background: rule.enabled ? '#D61F26' : (t ? '#434347' : '#E9EAEC'),
+                  }}>
+                    <span style={{
+                      position: 'absolute',
+                      top: 2,
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      transition: 'transform 150ms',
+                      transform: rule.enabled ? 'translateX(22px)' : 'translateX(2px)',
+                    }} />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {NOTIFICATION_RULES.map((rule) => (
-                <tr key={rule.event} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-700">{rule.event}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      {rule.channels.map((channel) => (
-                        <Badge key={channel} variant="default" size="sm">{channel}</Badge>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        rule.enabled ? 'bg-dh-red' : 'bg-gray-200'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          rule.enabled ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Data Sources */}
-      <Card>
-        <CardHeader
-          title="Data Sources"
-          subtitle="Connected data sources for engine inputs"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { name: 'Competitor Prices', status: 'connected', lastSync: '2 hours ago' },
-            { name: 'Nielsen Data', status: 'connected', lastSync: 'Daily at 6am' },
-            { name: 'Search Trends', status: 'connected', lastSync: '4 hours ago' },
-            { name: 'Internal Sales', status: 'connected', lastSync: 'Real-time' },
-            { name: 'Inventory System', status: 'connected', lastSync: 'Real-time' },
-            { name: 'Supplier Portal', status: 'error', lastSync: 'Failed 2 days ago' },
-          ].map((source) => (
-            <div key={source.name} className="border border-gray-100 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-gray-700">{source.name}</span>
-                <Badge variant={source.status === 'connected' ? 'success' : 'danger'} size="sm">
-                  {source.status}
-                </Badge>
+      <div style={cardStyle}>
+        <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>Data Sources</div>
+        <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 16 }}>Connected data sources for engine inputs</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {DATA_SOURCES.map((source) => (
+            <div key={source.name} style={{ background: surfSecondary, borderRadius: 8, padding: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ font: `600 13px/1 ${font}`, color: fg1 }}>{source.name}</span>
+                <span style={{ background: source.status === 'connected' ? '#E5F5EC' : '#FCEBE8', color: source.status === 'connected' ? '#047538' : '#BF280A', font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200 }}>{source.status}</span>
               </div>
-              <p className="text-xs text-gray-500">Last sync: {source.lastSync}</p>
+              <div style={{ font: `500 11px/1 ${font}`, color: fg3 }}>Last sync: {source.lastSync}</div>
             </div>
           ))}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

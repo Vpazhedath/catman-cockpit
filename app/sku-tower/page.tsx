@@ -1,78 +1,130 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { SAMPLE_SKUS, RELEVANT_SKUS } from '@/lib/sample-data';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { SAMPLE_SKUS, Warehouse, SKUStatus, WAREHOUSE_CLUSTERS } from '@/lib/sample-data';
+import { useTheme } from '@/lib/ThemeContext';
+import { exportData, generateFilename, ExportColumn } from '@/lib/export';
+import { ExportButton } from '@/components/ExportButton';
+import { StatusDistributionChart } from '@/components/Charts';
+import { SKUDrilldownPanel } from '@/components/SKUDrilldownPanel';
 
 const CATEGORIES_L0 = [
-  { id: 'all', name: 'All Categories' },
-  { id: 'beverages', name: 'Beverages' },
-  { id: 'dairy-chilled-eggs', name: 'Dairy & Eggs' },
-  { id: 'snacks', name: 'Snacks & Confectionery' },
-  { id: 'personal-care-baby-health', name: 'Personal Care' },
-  { id: 'home-pet', name: 'Home & Pet' },
-  { id: 'frozen', name: 'Frozen Foods' },
-  { id: 'packaged-foods', name: 'Packaged Foods' },
+  { id: 'all', name: 'All Categories' }, { id: 'beverages', name: 'Beverages' }, { id: 'dairy-chilled-eggs', name: 'Dairy & Eggs' },
+  { id: 'snacks', name: 'Snacks & Confectionery' }, { id: 'personal-care-baby-health', name: 'Personal Care' },
+  { id: 'home-pet', name: 'Home & Pet' }, { id: 'frozen', name: 'Frozen Foods' }, { id: 'packaged-foods', name: 'Packaged Foods' },
 ];
 
-const statusStyle: Record<string, { bg: string; fg: string }> = {
-  active: { bg: '#E5F5EC', fg: '#047538' },
-  'on-hold': { bg: '#FFF8DF', fg: '#8F5D00' },
-  discontinued: { bg: '#FCEBE8', fg: '#BF280A' },
-  retired: { bg: '#F4F5F6', fg: '#93949D' },
-};
-const maturityStyle: Record<string, { bg: string; fg: string }> = {
-  mature: { bg: '#E5F5EC', fg: '#047538' },
-  probation: { bg: '#EDEBFF', fg: '#3A22D5' },
-  review: { bg: '#FFF8DF', fg: '#8F5D00' },
-  'phase-out': { bg: '#FCEBE8', fg: '#BF280A' },
-  new: { bg: '#EDEBFF', fg: '#4629FF' },
-};
+const statusStyle: Record<string, { bg: string; fg: string }> = { active: { bg: '#E5F5EC', fg: '#047538' }, 'on-hold': { bg: '#FFF8DF', fg: '#8F5D00' }, discontinued: { bg: '#FCEBE8', fg: '#BF280A' }, 'phase-out': { bg: '#FCEBE8', fg: '#BF280A' } };
+const maturityStyle: Record<string, { bg: string; fg: string }> = { mature: { bg: '#E5F5EC', fg: '#047538' }, probation: { bg: '#EDEBFF', fg: '#3A22D5' }, review: { bg: '#FFF8DF', fg: '#8F5D00' }, 'phase-out': { bg: '#FCEBE8', fg: '#BF280A' }, new: { bg: '#EDEBFF', fg: '#4629FF' } };
 const engineDots: Record<string, string> = { choice: '#4629FF', affordability: '#FFC400', lifecycle: '#6635B6', profitability: '#047538' };
 
-const fg1 = '#141415';
-const fg2 = '#6C6D73';
-const fg3 = '#93949D';
 const font = 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)';
 const mono = 'var(--font-mono, monospace)';
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #E9EAEC', borderRadius: 12 };
+
+interface SKURow {
+  skuId: string;
+  name: string;
+  category: string;
+  status: SKUStatus;
+  maturityStage: 'new' | 'probation' | 'mature' | 'review' | 'phase-out';
+  efficiency: 'efficient' | 'slow-mover' | 'zero-mover' | 'low-availability';
+  costPrice: number;
+  basePrice: number;
+  discount: number | null;
+  margin: number;
+  engineSignals: readonly string[];
+  warehouses: Array<{ warehouse: Warehouse; status: SKUStatus; inStock: boolean; quantity: number; lastUpdated: string }>;
+  supplier: string;
+  weeklyUnitsSold: number;
+  availability: number;
+}
 
 export default function SKUControlTowerPage() {
+  const { theme } = useTheme();
+  const t = theme === 'dark';
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  type SKURow = typeof RELEVANT_SKUS[number];
+  const [skus, setSkus] = useState<SKURow[]>(SAMPLE_SKUS);
+  const [loading, setLoading] = useState(false);
   const [selectedSKU, setSelectedSKU] = useState<SKURow | null>(null);
 
-  const baseData = RELEVANT_SKUS;
-  const counts: Record<string, number> = {
-    all: baseData.length,
-    active: baseData.filter(s => s.status === 'active').length,
-    'on-hold': baseData.filter(s => s.status === 'on-hold').length,
-    discontinued: baseData.filter(s => s.status === 'discontinued').length,
-  };
+  const card: React.CSSProperties = { background: t ? '#1E1E20' : '#fff', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 12 };
+  const fg1 = t ? '#fff' : '#141415';
+  const fg2 = t ? '#b9bac1' : '#6C6D73';
+  const fg3 = t ? '#6C6D73' : '#93949D';
 
-  const filtered = useMemo(() => {
-    let d = [...baseData];
-    if (filter !== 'all') d = d.filter(s => s.status === filter);
-    if (search) { const q = search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q) || s.supplier.toLowerCase().includes(q)); }
-    return d;
-  }, [filter, search, baseData]);
+  // Fetch SKUs from API when filter/search changes
+  useEffect(() => {
+    const fetchSKUs = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (filter !== 'all') params.append('status', filter);
+        if (search) params.append('search', search);
+        params.append('limit', '50');
+
+        const res = await fetch(`/api/skus?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSkus(data.length > 0 ? data : SAMPLE_SKUS);
+        }
+      } catch (error) {
+        console.error('Failed to fetch SKUs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce search
+    const timer = setTimeout(fetchSKUs, 300);
+    return () => clearTimeout(timer);
+  }, [filter, search]);
+
+  const counts = { all: skus.length, active: skus.filter(s => s.status === 'active').length, 'on-hold': skus.filter(s => s.status === 'on-hold').length, discontinued: skus.filter(s => s.status === 'discontinued').length };
+
+  // Status distribution chart data
+  const statusChartData = [
+    { label: 'Active', count: counts.active, color: '#047538', pct: skus.length ? Math.round(counts.active / skus.length * 100) : 0 },
+    { label: 'On-Hold', count: counts['on-hold'], color: '#FFC400', pct: skus.length ? Math.round(counts['on-hold'] / skus.length * 100) : 0 },
+    { label: 'Discontinued', count: counts.discontinued, color: '#D62D0B', pct: skus.length ? Math.round(counts.discontinued / skus.length * 100) : 0 },
+  ];
+
+  // Export columns for SKU table
+  const skuExportColumns: ExportColumn<SKURow>[] = useMemo(() => [
+    { header: 'SKU ID', key: 'skuId' },
+    { header: 'Name', key: 'name' },
+    { header: 'Supplier', key: 'supplier' },
+    { header: 'Category', key: 'category', formatter: (val) => CATEGORIES_L0.find(c => c.id === val)?.name || String(val) },
+    { header: 'Status', key: 'status', formatter: (val) => String(val).replace('-', ' ') },
+    { header: 'Maturity Stage', key: 'maturityStage', formatter: (val) => String(val).replace('-', ' ') },
+    { header: 'Cost Price', key: 'costPrice', formatter: (val) => Number(val).toFixed(2) },
+    { header: 'Base Price', key: 'basePrice', formatter: (val) => Number(val).toFixed(2) },
+    { header: 'Discount %', key: 'discount', formatter: (val) => val != null ? `${val}%` : '' },
+    { header: 'Margin %', key: 'margin', formatter: (val) => `${val}%` },
+    { header: 'Weekly Units Sold', key: 'weeklyUnitsSold' },
+    { header: 'Availability %', key: 'availability', formatter: (val) => `${val}%` },
+    { header: 'Engine Signals', key: 'engineSignals', formatter: (val) => Array.isArray(val) ? val.join(', ') : '' },
+    { header: 'Warehouses In Stock', key: 'warehouses', formatter: (val) => Array.isArray(val) ? val.filter((w: { inStock: boolean }) => w.inStock).length : 0 },
+  ], []);
+
+  const handleExport = useCallback((format: 'csv' | 'xlsx') => {
+    exportData(skus, skuExportColumns, generateFilename('sku-tower'), format);
+  }, [skus, skuExportColumns]);
 
   const summaryCards = [
-    { label: 'Total SKUs', value: String(filtered.length), color: fg1 },
-    { label: 'Avg Margin', value: (filtered.reduce((a, s) => a + s.margin, 0) / (filtered.length || 1)).toFixed(0) + '%', color: '#047538' },
-    { label: 'Warehouse Coverage', value: (filtered.reduce((a, s) => a + s.warehouses.filter(w => w.inStock).length, 0) / ((filtered.length * 5) || 1) * 100).toFixed(0) + '%', color: '#4629FF' },
-    { label: 'Needs Action', value: String(filtered.filter(s => s.engineSignals.length > 0).length), color: '#D62D0B' },
+    { label: 'Total SKUs', value: String(skus.length), color: fg1 },
+    { label: 'Avg Margin', value: (skus.reduce((a, s) => a + s.margin, 0) / (skus.length || 1)).toFixed(0) + '%', color: '#047538' },
+    { label: 'Warehouse Coverage', value: (skus.reduce((a, s) => a + s.warehouses.filter(w => w.inStock).length, 0) / ((skus.length * 5) || 1) * 100).toFixed(0) + '%', color: '#4629FF' },
+    { label: 'Needs Action', value: String(skus.filter(s => s.engineSignals.length > 0).length), color: '#D62D0B' },
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Header */}
       <div>
         <div style={{ font: `700 28px/1.25 ${font}`, letterSpacing: '-0.01em', color: fg1 }}>SKU Control Tower</div>
-        <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>End-to-end SKU visibility across all warehouses</div>
+        <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>End-to-end SKU visibility across all warehouses {loading && '· Loading...'}</div>
       </div>
 
-      {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {summaryCards.map((s, i) => (
           <div key={i} style={{ ...card, padding: '14px 18px' }}>
@@ -82,61 +134,93 @@ export default function SKUControlTowerPage() {
         ))}
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         {Object.entries(counts).map(([k, v]) => (
           <button key={k} onClick={() => setFilter(k)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 200, cursor: 'pointer',
-            border: `1px solid ${filter === k ? '#4629FF' : '#E9EAEC'}`,
-            background: filter === k ? '#EDEBFF' : 'transparent',
-            color: filter === k ? '#4629FF' : fg2,
-            font: `600 12px/1 ${font}`,
+            border: `1px solid ${filter === k ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`,
+            background: filter === k ? (t ? 'rgba(70,41,255,0.15)' : '#EDEBFF') : 'transparent',
+            color: filter === k ? '#4629FF' : fg2, font: `600 12px/1 ${font}`,
           }}>
             {k === 'all' ? 'All' : k.charAt(0).toUpperCase() + k.slice(1).replace('-', ' ')}
             <span style={{ font: `500 10px/1 ${mono}`, opacity: 0.7 }}>{v}</span>
           </button>
         ))}
-        <div style={{ marginLeft: 'auto', position: 'relative' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: fg2 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search SKUs, suppliers…" style={{ width: 260, padding: '8px 12px 8px 32px', border: '1px solid #E9EAEC', borderRadius: 8, background: '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }} />
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ExportButton onExport={handleExport} isDark={t} />
+          <div style={{ position: 'relative' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: fg2 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search SKUs, suppliers…" style={{ width: 260, padding: '8px 12px 8px 32px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }} />
+          </div>
         </div>
       </div>
 
-      {/* Table + Detail panel */}
+      {/* Status Distribution Chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ font: `700 14px/1.3 ${font}`, color: fg1, marginBottom: 12 }}>Status Distribution</div>
+          <StatusDistributionChart data={statusChartData} height={140} />
+        </div>
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ font: `700 14px/1.3 ${font}`, color: fg1, marginBottom: 8 }}>Category Breakdown</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {CATEGORIES_L0.slice(1, 7).map(cat => {
+              const catCount = skus.filter(s => s.category === cat.id).length;
+              const catPct = skus.length ? Math.round(catCount / skus.length * 100) : 0;
+              return (
+                <div key={cat.id} style={{ minWidth: 120 }}>
+                  <div style={{ font: `500 11px/1 ${font}`, color: fg3 }}>{cat.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
+                    <span style={{ font: `700 18px/1 ${font}`, color: fg1 }}>{catCount}</span>
+                    <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>{catPct}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: selectedSKU ? '1fr 380px' : '1fr', gap: 16 }}>
         <div style={{ ...card, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#F4F5F6' }}>
+              <tr style={{ background: t ? '#343437' : '#F4F5F6' }}>
                 {['SKU Name', 'Category', 'Status', 'Stage', 'WH', 'Cost', 'Price', 'Margin', 'Signals'].map(h => (
                   <th key={h} style={{ textAlign: h === 'Cost' || h === 'Price' || h === 'Margin' ? 'right' : h === 'WH' || h === 'Signals' ? 'center' : 'left', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map(row => {
+              {skus.map(row => {
                 const ss = statusStyle[row.status] || statusStyle.active;
                 const ms = maturityStyle[row.maturityStage] || maturityStyle.mature;
                 const active = selectedSKU?.skuId === row.skuId;
                 return (
-                  <tr key={row.skuId} onClick={() => setSelectedSKU(row)} style={{ borderBottom: '1px solid #F4F5F6', cursor: 'pointer', background: active ? 'rgba(70,41,255,0.02)' : 'transparent' }}>
+                  <tr
+                    key={row.skuId}
+                    onClick={() => setSelectedSKU(row)}
+                    onDoubleClick={() => setSelectedSKU(row)}
+                    style={{
+                      borderBottom: `1px solid ${t ? '#343437' : '#F4F5F6'}`,
+                      cursor: 'pointer',
+                      background: active ? (t ? 'rgba(70,41,255,0.06)' : 'rgba(70,41,255,0.02)') : 'transparent',
+                    }}
+                  >
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ font: `600 13px/1.3 ${font}`, color: fg1 }}>{row.name}</div>
                       <div style={{ font: `500 11px/1.3 ${font}`, color: fg3 }}>{row.supplier}</div>
                     </td>
                     <td style={{ padding: '12px 14px', font: `500 12px/1 ${font}`, color: fg2 }}>{CATEGORIES_L0.find(c => c.id === row.category)?.name || row.category}</td>
-                    <td style={{ padding: '12px 14px' }}><span style={{ background: ss.bg, color: ss.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.status.replace('-', ' ')}</span></td>
-                    <td style={{ padding: '12px 14px' }}><span style={{ background: ms.bg, color: ms.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.maturityStage.replace('-', ' ')}</span></td>
+                    <td style={{ padding: '12px 14px' }}><span style={{ background: t ? `${ss.fg}18` : ss.bg, color: ss.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.status.replace('-', ' ')}</span></td>
+                    <td style={{ padding: '12px 14px' }}><span style={{ background: t ? `${ms.fg}18` : ms.bg, color: ms.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.maturityStage.replace('-', ' ')}</span></td>
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                        {row.warehouses.map((w, i) => <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: w.inStock ? '#047538' : '#E9EAEC' }} title={`${w.warehouse}: ${w.quantity}`} />)}
+                        {row.warehouses.map((w, i) => <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: w.inStock ? '#047538' : (t ? '#434347' : '#E9EAEC') }} title={`${w.warehouse}: ${w.quantity}`} />)}
                       </div>
                     </td>
                     <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>{row.costPrice.toFixed(2)}</td>
-                    <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>
-                      {row.basePrice.toFixed(2)}
-                      {row.discount ? <span style={{ color: '#D62D0B', fontSize: 10, marginLeft: 4 }}>-{row.discount}%</span> : null}
-                    </td>
+                    <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>{row.basePrice.toFixed(2)}{row.discount ? <span style={{ color: '#D62D0B', fontSize: 10, marginLeft: 4 }}>-{row.discount}%</span> : null}</td>
                     <td style={{ padding: '12px 14px', font: `600 12px/1 ${mono}`, color: row.margin >= 30 ? '#047538' : row.margin >= 20 ? '#8F5D00' : '#D62D0B', textAlign: 'right' }}>{row.margin}%</td>
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
@@ -150,46 +234,44 @@ export default function SKUControlTowerPage() {
           </table>
         </div>
 
-        {/* Detail drawer */}
         {selectedSKU && (
-          <div style={{ ...card, padding: 20, height: 'fit-content', position: 'sticky', top: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <div>
-                <div style={{ font: `700 18px/1.3 ${font}`, color: fg1 }}>{selectedSKU.name}</div>
-                <div style={{ font: `500 12px/1.3 ${font}`, color: fg2, marginTop: 2 }}>{selectedSKU.supplier} · {selectedSKU.skuId}</div>
-              </div>
-              <button onClick={() => setSelectedSKU(null)} style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 4, font: `500 16px/1 ${font}`, color: fg3 }}>×</button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              {[
-                { l: 'Cost', v: `AED ${selectedSKU.costPrice.toFixed(2)}` },
-                { l: 'Price', v: `AED ${selectedSKU.basePrice.toFixed(2)}` },
-                { l: 'Margin', v: `${selectedSKU.margin}%` },
-                { l: 'Weekly units', v: selectedSKU.weeklyUnitsSold.toLocaleString() },
-              ].map((x, i) => (
-                <div key={i} style={{ background: '#F4F5F6', borderRadius: 8, padding: '10px 12px' }}>
-                  <div style={{ font: `500 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{x.l}</div>
-                  <div style={{ font: `700 16px/1.2 ${font}`, color: fg1, marginTop: 4 }}>{x.v}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ font: `600 11px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>Warehouse distribution</div>
-            {selectedSKU.warehouses.map((w, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < selectedSKU.warehouses.length - 1 ? '1px solid #F4F5F6' : 'none' }}>
-                <div style={{ width: 8, height: 8, borderRadius: 2, background: w.inStock ? '#047538' : '#D62D0B', flexShrink: 0 }} />
-                <div style={{ flex: 1, font: `500 12px/1.3 ${font}`, color: fg1 }}>{w.warehouse}</div>
-                <div style={{ font: `500 11px/1 ${mono}`, color: w.inStock ? fg2 : '#D62D0B' }}>{w.inStock ? `${w.quantity} units` : 'OOS'}</div>
-              </div>
-            ))}
-            {selectedSKU.engineSignals.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ font: `600 11px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>Engine signals</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {selectedSKU.engineSignals.map((s, i) => <span key={i} style={{ background: '#EDEBFF', color: '#4629FF', font: `600 11px/1 ${font}`, padding: '5px 10px', borderRadius: 200, textTransform: 'capitalize' }}>{s}</span>)}
-                </div>
-              </div>
-            )}
-          </div>
+          <SKUDrilldownPanel
+            sku={selectedSKU}
+            onClose={() => setSelectedSKU(null)}
+            onUpdateStatus={(warehouse, status) => {
+              // Update the SKU's warehouse status
+              setSkus(prevSkus => prevSkus.map(sku => {
+                if (sku.skuId === selectedSKU.skuId) {
+                  return {
+                    ...sku,
+                    warehouses: sku.warehouses.map(w =>
+                      w.warehouse === warehouse ? { ...w, status, inStock: status === 'active' } : w
+                    ),
+                  };
+                }
+                return sku;
+              }));
+            }}
+            onUpdateClusterStatus={(clusterId, status) => {
+              // Find the cluster and update all its warehouses
+              const cluster = WAREHOUSE_CLUSTERS.find(c => c.id === clusterId);
+              if (cluster) {
+                setSkus(prevSkus => prevSkus.map(sku => {
+                  if (sku.skuId === selectedSKU.skuId) {
+                    return {
+                      ...sku,
+                      warehouses: sku.warehouses.map(w =>
+                        cluster.warehouses.includes(w.warehouse)
+                          ? { ...w, status, inStock: status === 'active' }
+                          : w
+                      ),
+                    };
+                  }
+                  return sku;
+                }));
+              }
+            }}
+          />
         )}
       </div>
     </div>

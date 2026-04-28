@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface Command {
   id: string;
@@ -12,12 +13,16 @@ interface Command {
   action: () => void;
 }
 
+const font = 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)';
+
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { theme } = useTheme();
+  const t = theme === 'dark';
 
   const commands: Command[] = useMemo(() => [
     // Navigation
@@ -28,18 +33,13 @@ export function CommandPalette() {
     { id: 'nav-lifecycle', title: 'Go to Lifecycle', category: 'Navigation', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', action: () => router.push('/lifecycle') },
     { id: 'nav-profitability', title: 'Go to Profitability', category: 'Navigation', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', action: () => router.push('/profitability') },
     { id: 'nav-settings', title: 'Go to Settings', category: 'Navigation', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', action: () => router.push('/settings') },
-    { id: 'nav-analytics', title: 'Go to Analytics', category: 'Navigation', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', action: () => router.push('/analytics') },
     // Actions
-    { id: 'action-add-sku', title: 'Add New SKU', category: 'Actions', shortcut: '⌘N', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z', action: () => router.push('/sku-tower') },
-    { id: 'action-export', title: 'Export Report', category: 'Actions', shortcut: '⌘D', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', action: () => {} },
-    { id: 'action-run-engines', title: 'Run All Engines', category: 'Actions', shortcut: '⌘E', icon: 'M13 10V3L4 14h7v7l9-11h-7z', action: () => {} },
+    { id: 'action-export', title: 'Export Current View', category: 'Actions', shortcut: '⌘D', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', action: () => {} },
     // SKUs
     { id: 'sku-almarai', title: 'Almarai Full Cream 1L', category: 'SKUs', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', action: () => router.push('/sku-tower') },
     { id: 'sku-nestle', title: 'Nestle Pure Life 1.5L', category: 'SKUs', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', action: () => router.push('/sku-tower') },
-    { id: 'sku-redbull', title: 'Red Bull 250ml', category: 'SKUs', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', action: () => router.push('/sku-tower') },
   ], [router]);
 
-  // Filter commands based on search
   const filteredCommands = useMemo(() => {
     if (!search) return commands;
     const lowerSearch = search.toLowerCase();
@@ -49,7 +49,6 @@ export function CommandPalette() {
     );
   }, [commands, search]);
 
-  // Group commands by category
   const groupedCommands = useMemo(() => {
     const groups: Record<string, Command[]> = {};
     filteredCommands.forEach(cmd => {
@@ -59,20 +58,16 @@ export function CommandPalette() {
     return groups;
   }, [filteredCommands]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Open with Cmd+K
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen(true);
       }
-      // Close with Escape
       if (e.key === 'Escape') {
         setIsOpen(false);
         setSearch('');
       }
-      // Navigate with arrows
       if (isOpen) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
@@ -93,89 +88,132 @@ export function CommandPalette() {
         }
       }
     }
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, filteredCommands, selectedIndex]);
 
-  // Focus input when opened
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isOpen]);
 
-  // Reset selection when search changes
   useEffect(() => {
     setSelectedIndex(0);
   }, [search]);
 
+  // Colors based on theme
+  const fg1 = t ? '#fff' : '#141415';
+  const fg2 = t ? '#b9bac1' : '#6C6D73';
+  const fg3 = t ? '#6C6D73' : '#93949D';
+  const surfPrimary = t ? '#1E1E20' : '#fff';
+  const surfSecondary = t ? '#343437' : '#F4F5F6';
+  const border = t ? '#343437' : '#E9EAEC';
+
+  // Trigger button in header
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-white/10 rounded-lg hover:bg-white/15 transition"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '7px 12px',
+          borderRadius: 8,
+          border: `1px solid ${t ? '#434347' : '#E9EAEC'}`,
+          background: t ? '#343437' : '#F4F5F6',
+          cursor: 'pointer',
+        }}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={fg3} strokeWidth="2">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
         </svg>
-        <span>Search...</span>
-        <kbd className="px-1.5 py-0.5 text-xs bg-white/10 rounded">⌘K</kbd>
+        <span style={{ font: `500 12px/1 ${font}`, color: fg3 }}>Search…</span>
+        <span style={{ font: `500 10px/1 ${font}`, color: fg3, background: t ? '#434347' : '#E9EAEC', padding: '2px 6px', borderRadius: 4 }}>⌘K</span>
       </button>
     );
   }
 
+  // Full modal
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-24" onClick={() => setIsOpen(false)}>
+    <div
+      onClick={() => { setIsOpen(false); setSearch(''); }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: 100,
+      }}
+    >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden"
         onClick={e => e.stopPropagation()}
+        style={{
+          background: surfPrimary,
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.24)',
+          width: '100%',
+          maxWidth: 560,
+          overflow: 'hidden',
+        }}
       >
         {/* Search Input */}
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              ref={inputRef}
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search commands, pages, SKUs..."
-              className="flex-1 text-gray-900 placeholder-gray-400 outline-none text-lg"
-            />
-            <kbd className="px-2 py-1 text-xs bg-gray-100 rounded text-gray-500">ESC</kbd>
-          </div>
+        <div style={{ padding: 16, borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fg3} strokeWidth="2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search commands, pages, SKUs..."
+            style={{ flex: 1, background: 'transparent', border: 0, outline: 'none', font: `500 16px/1 ${font}`, color: fg1 }}
+          />
+          <span style={{ font: `500 11px/1 ${font}`, color: fg3, background: surfSecondary, padding: '4px 8px', borderRadius: 4 }}>ESC</span>
         </div>
 
         {/* Results */}
-        <div className="max-h-96 overflow-y-auto p-2">
+        <div style={{ maxHeight: 360, overflowY: 'auto', padding: 8 }}>
           {Object.entries(groupedCommands).map(([category, cmds]) => (
-            <div key={category} className="mb-2">
-              <p className="text-xs font-medium text-gray-400 px-3 py-2">{category}</p>
+            <div key={category} style={{ marginBottom: 8 }}>
+              <p style={{ font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '8px 12px 6px' }}>{category}</p>
               {cmds.map(cmd => {
                 const globalIndex = filteredCommands.indexOf(cmd);
+                const isSelected = globalIndex === selectedIndex;
                 return (
                   <button
                     key={cmd.id}
-                    onClick={() => {
-                      cmd.action();
-                      setIsOpen(false);
-                      setSearch('');
+                    onClick={() => { cmd.action(); setIsOpen(false); setSearch(''); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: 0,
+                      cursor: 'pointer',
+                      background: isSelected ? '#4629FF' : 'transparent',
+                      color: isSelected ? '#fff' : fg1,
+                      font: `500 13px/1 ${font}`,
+                      textAlign: 'left' as const,
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition ${
-                      globalIndex === selectedIndex ? 'bg-dh-blue text-white' : 'hover:bg-gray-50'
-                    }`}
                   >
-                    <svg className={`w-5 h-5 ${globalIndex === selectedIndex ? 'text-white' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={cmd.icon} />
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isSelected ? '#fff' : fg3} strokeWidth="1.75">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={cmd.icon} />
                     </svg>
-                    <span className="flex-1 text-left text-sm">{cmd.title}</span>
+                    <span style={{ flex: 1 }}>{cmd.title}</span>
                     {cmd.shortcut && (
-                      <kbd className={`px-2 py-0.5 text-xs rounded ${globalIndex === selectedIndex ? 'bg-white/20' : 'bg-gray-100'}`}>
+                      <span style={{ font: `500 10px/1 ${font}`, color: isSelected ? 'rgba(255,255,255,0.7)' : fg3, background: isSelected ? 'rgba(255,255,255,0.2)' : surfSecondary, padding: '2px 6px', borderRadius: 4 }}>
                         {cmd.shortcut}
-                      </kbd>
+                      </span>
                     )}
                   </button>
                 );
@@ -183,26 +221,22 @@ export function CommandPalette() {
             </div>
           ))}
           {filteredCommands.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <p>No results found for "{search}"</p>
+            <div style={{ textAlign: 'center', padding: 32, color: fg2 }}>
+              <p style={{ font: `500 14px/1 ${font}` }}>No results for "{search}"</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-400">
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded">↑</kbd>
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded">↓</kbd>
+        <div style={{ padding: '10px 16px', borderTop: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 16, font: `500 11px/1 ${font}`, color: fg3 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ background: surfSecondary, padding: '2px 6px', borderRadius: 4 }}>↑</span>
+            <span style={{ background: surfSecondary, padding: '2px 6px', borderRadius: 4 }}>↓</span>
             Navigate
           </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded">↵</kbd>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ background: surfSecondary, padding: '2px 6px', borderRadius: 4 }}>↵</span>
             Select
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded">ESC</kbd>
-            Close
           </span>
         </div>
       </div>

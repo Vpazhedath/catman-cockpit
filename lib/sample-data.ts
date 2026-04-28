@@ -28,6 +28,29 @@ export const UAE_WAREHOUSES = [
 
 export type Warehouse = typeof UAE_WAREHOUSES[number];
 
+// Warehouse Clusters - groups of warehouses
+export interface WarehouseCluster {
+  id: string;
+  name: string;
+  warehouses: Warehouse[];
+  region: string;
+}
+
+export const WAREHOUSE_CLUSTERS: WarehouseCluster[] = [
+  {
+    id: 'cluster-dubai',
+    name: 'Dubai Metro',
+    warehouses: ['Dubai Central', 'Sharjah DC', 'Ajman Warehouse'],
+    region: 'Dubai & Northern Emirates',
+  },
+  {
+    id: 'cluster-abudhabi',
+    name: 'Abu Dhabi Region',
+    warehouses: ['Abu Dhabi Hub', 'Ras Al Khaimah'],
+    region: 'Abu Dhabi & RAK',
+  },
+];
+
 // Warehouse availability for an SKU
 export interface WarehouseAvailability {
   warehouse: Warehouse;
@@ -74,9 +97,9 @@ export const UAE_SKU_STATUS_COUNTS = {
 
 // Real UAE GMV Trend from BigQuery
 export const SAMPLE_GMV_TREND = [
-  { day: 'Nov', value: 30780233 },
-  { day: 'Dec', value: 29535086 },
-  { day: 'Jan', value: 31518281 },
+  { month: 'Nov 2025', gmv: 30780233, orders: 1627151 },
+  { month: 'Dec 2025', gmv: 29535086, orders: 1586401 },
+  { month: 'Jan 2026', gmv: 31518281, orders: 1684626 },
 ];
 
 // Engine Signals based on real BigQuery data patterns
@@ -866,6 +889,24 @@ export const SAMPLE_ASSORTMENT_RECS = [
     skuName: 'Nadec Full Cream 2L',
     rationale: 'Top 3 nationally by unit sales in MT channel. Not listed on Talabat. Margin est. 28–32%.',
     confidence: 78,
+  },
+  {
+    source: 'competitor' as const,
+    skuName: 'Alpro Unsweetened Oat 1L',
+    rationale: 'Available on Carrefour at AED 16.5. High search volume in plant-based category. Est. 400+ units/month.',
+    confidence: 88,
+  },
+  {
+    source: 'search' as const,
+    skuName: 'Premium Greek Yogurt 500g',
+    rationale: 'Search volume up 180% MoM. Zero organic listings. Price potential AED 22-28.',
+    confidence: 75,
+  },
+  {
+    source: 'nielsen' as const,
+    skuName: 'Nestle A+ Milk 1L',
+    rationale: 'Top 5 nationally by value in MT. Gap in availability on platform. Margin est. 25-30%.',
+    confidence: 82,
   },
 ];
 

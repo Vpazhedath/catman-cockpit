@@ -1,10 +1,9 @@
 'use client';
 
-import { Card, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import { useTheme } from '@/lib/ThemeContext';
 
-// Mock analytics data
+const font = 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)';
+
 const PERFORMANCE_METRICS = [
   { metric: 'GMV', current: 'AED 2.4M', previous: 'AED 2.1M', change: '+14%', trend: 'up' },
   { metric: 'Orders', current: '18,420', previous: '16,890', change: '+9%', trend: 'up' },
@@ -28,151 +27,136 @@ const TOP_CATEGORIES = [
 ];
 
 const RECENT_ACTIONS = [
-  { action: 'SKU Discontinued', item: 'Almarai Laban 200ml', user: 'System', time: '10 min ago' },
-  { action: 'Price Matched', item: 'Lacnor Orange Juice 1L', user: 'Ahmed K.', time: '25 min ago' },
-  { action: 'Clearance Started', item: 'Premium Yogurt 500g', user: 'Sara M.', time: '1 hour ago' },
-  { action: 'SKU Added', item: 'Oat Milk 1L', user: 'Mohammed R.', time: '2 hours ago' },
-  { action: 'Status Changed', item: 'Nestle Pure Life 1.5L', user: 'System', time: '3 hours ago' },
+  { action: 'SKU Discontinued', item: 'Almarai Laban 200ml', user: 'System', time: '10 min ago', color: '#D62D0B' },
+  { action: 'Price Matched', item: 'Lacnor Orange Juice 1L', user: 'Ahmed K.', time: '25 min ago', color: '#4629FF' },
+  { action: 'Clearance Started', item: 'Premium Yogurt 500g', user: 'Sara M.', time: '1 hour ago', color: '#8F5D00' },
+  { action: 'SKU Added', item: 'Oat Milk 1L', user: 'Mohammed R.', time: '2 hours ago', color: '#047538' },
+  { action: 'Status Changed', item: 'Nestle Pure Life 1.5L', user: 'System', time: '3 hours ago', color: '#4629FF' },
 ];
 
 export default function AnalyticsPage() {
+  const { theme } = useTheme();
+  const t = theme === 'dark';
+
+  const fg1 = t ? '#fff' : '#141415';
+  const fg2 = t ? '#b9bac1' : '#6C6D73';
+  const fg3 = t ? '#6C6D73' : '#93949D';
+  const surfPrimary = t ? '#1E1E20' : '#fff';
+  const surfSecondary = t ? '#343437' : '#F4F5F6';
+  const border = t ? '#343437' : '#E9EAEC';
+
+  const cardStyle: React.CSSProperties = {
+    background: surfPrimary,
+    border: `1px solid ${border}`,
+    borderRadius: 12,
+    padding: 20,
+  };
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="text-2xl font-bold text-dh-blue">Analytics Dashboard</h1>
-          <p className="text-gray-500 mt-1">Performance insights and engine metrics</p>
+          <div style={{ font: `700 28px/1.25 ${font}`, letterSpacing: '-0.01em', color: fg1 }}>Analytics Dashboard</div>
+          <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>Performance insights and engine metrics</div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={{ background: t ? '#1E1E20' : '#fff', color: fg1, border: `1px solid ${border}`, borderRadius: 8, padding: '10px 16px', font: `600 13px/1 ${font}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeLinecap="round" strokeLinejoin="round" /></svg>
             Export Report
-          </Button>
-          <Button>Share</Button>
+          </button>
+          <button style={{ background: '#4629FF', color: '#fff', border: 0, borderRadius: 8, padding: '10px 20px', font: `600 13px/1 ${font}`, cursor: 'pointer' }}>Share</button>
         </div>
       </div>
 
       {/* Performance Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {PERFORMANCE_METRICS.map((metric) => (
-          <Card key={metric.metric}>
-            <p className="text-sm text-gray-500">{metric.metric}</p>
-            <p className="text-2xl font-bold text-dh-blue mt-1">{metric.current}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className={`text-sm font-medium ${metric.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                {metric.change}
-              </span>
-              <span className="text-xs text-gray-400">vs last period</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        {PERFORMANCE_METRICS.map((m) => (
+          <div key={m.metric} style={cardStyle}>
+            <div style={{ font: `500 12px/1 ${font}`, color: fg2 }}>{m.metric}</div>
+            <div style={{ font: `700 24px/1.2 ${font}`, color: fg1, marginTop: 6 }}>{m.current}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <span style={{ font: `600 12px/1 ${font}`, color: m.trend === 'up' ? '#047538' : '#D62D0B' }}>{m.change}</span>
+              <span style={{ font: `500 11px/1 ${font}`, color: fg3 }}>vs last period</span>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
         {/* Engine Performance */}
-        <Card className="lg:col-span-2">
-          <CardHeader title="Engine Performance" subtitle="Recommendation acceptance rates" />
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Engine</th>
-                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Recommendations</th>
-                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Accepted</th>
-                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Acceptance</th>
-                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Confidence</th>
+        <div style={cardStyle}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>Engine Performance</div>
+          <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 16 }}>Recommendation acceptance rates</div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: surfSecondary }}>
+                <th style={{ textAlign: 'left', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Engine</th>
+                <th style={{ textAlign: 'center', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Recommendations</th>
+                <th style={{ textAlign: 'center', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Accepted</th>
+                <th style={{ textAlign: 'center', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Acceptance</th>
+                <th style={{ textAlign: 'center', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ENGINE_PERFORMANCE.map((engine) => (
+                <tr key={engine.engine} style={{ borderBottom: `1px solid ${border}` }}>
+                  <td style={{ padding: '12px 14px', font: `600 13px/1 ${font}`, color: fg1 }}>{engine.engine}</td>
+                  <td style={{ padding: '12px 14px', font: `500 13px/1 ${font}`, color: fg2, textAlign: 'center' }}>{engine.recommendations}</td>
+                  <td style={{ padding: '12px 14px', font: `500 13px/1 ${font}`, color: fg2, textAlign: 'center' }}>{engine.accepted}</td>
+                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <span style={{ background: parseInt(engine.acceptanceRate) >= 70 ? '#E5F5EC' : '#FFF8DF', color: parseInt(engine.acceptanceRate) >= 70 ? '#047538' : '#8F5D00', font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200 }}>{engine.acceptanceRate}</span>
+                  </td>
+                  <td style={{ padding: '12px 14px', font: `600 13px/1 ${font}`, color: '#4629FF', textAlign: 'center' }}>{engine.avgConfidence}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {ENGINE_PERFORMANCE.map((engine) => (
-                  <tr key={engine.engine} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-dh-blue">{engine.engine}</td>
-                    <td className="px-4 py-3 text-sm text-center text-gray-600">{engine.recommendations}</td>
-                    <td className="px-4 py-3 text-sm text-center text-gray-600">{engine.accepted}</td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge variant={parseInt(engine.acceptanceRate) >= 70 ? 'success' : 'warning'}>
-                        {engine.acceptanceRate}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-center font-medium text-dh-blue">{engine.avgConfidence}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Top Categories */}
-        <Card>
-          <CardHeader title="Top Categories" subtitle="By revenue this period" />
-          <div className="space-y-3">
+        <div style={cardStyle}>
+          <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>Top Categories</div>
+          <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 12 }}>By revenue this period</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {TOP_CATEGORIES.map((cat, idx) => (
-              <div key={cat.category} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  idx === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {idx + 1}
+              <div key={cat.category} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', borderRadius: 8 }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: idx === 0 ? '#FFF8DF' : surfSecondary, color: idx === 0 ? '#8F5D00' : fg2, display: 'flex', alignItems: 'center', justifyContent: 'center', font: `700 11px/1 ${font}`, flexShrink: 0 }}>{idx + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ font: `600 13px/1.3 ${font}`, color: fg1 }}>{cat.category}</div>
+                  <div style={{ font: `500 11px/1.3 ${font}`, color: fg3 }}>{cat.skus} SKUs</div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-700">{cat.category}</p>
-                  <p className="text-xs text-gray-400">{cat.skus} SKUs</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-dh-blue">{cat.revenue}</p>
-                  <p className={`text-xs ${cat.growth.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                    {cat.growth}
-                  </p>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ font: `600 13px/1 ${font}`, color: fg1 }}>{cat.revenue}</div>
+                  <div style={{ font: `500 11px/1 ${font}`, color: cat.growth.startsWith('+') ? '#047538' : '#D62D0B' }}>{cat.growth}</div>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Recent Actions */}
-      <Card>
-        <CardHeader title="Recent Actions" subtitle="Latest system and user activities" />
-        <div className="space-y-2">
-          {RECENT_ACTIONS.map((action, idx) => (
-            <div key={idx} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                action.action.includes('Discontinued') ? 'bg-red-100' :
-                action.action.includes('Added') ? 'bg-green-100' :
-                action.action.includes('Clearance') ? 'bg-amber-100' :
-                'bg-blue-100'
-              }`}>
-                <svg className={`w-4 h-4 ${
-                  action.action.includes('Discontinued') ? 'text-red-600' :
-                  action.action.includes('Added') ? 'text-green-600' :
-                  action.action.includes('Clearance') ? 'text-amber-600' :
-                  'text-blue-600'
-                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {action.action.includes('Discontinued') ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : action.action.includes('Added') ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  )}
+      <div style={cardStyle}>
+        <div style={{ font: `700 16px/1.4 ${font}`, color: fg1, marginBottom: 4 }}>Recent Actions</div>
+        <div style={{ font: `500 12px/1.4 ${font}`, color: fg2, marginBottom: 12 }}>Latest system and user activities</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {RECENT_ACTIONS.map((a, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', borderRadius: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: t ? `${a.color}18` : `${a.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={a.color} strokeWidth="2">
+                  {a.action.includes('Discontinued') ? <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" /> : a.action.includes('Added') ? <path d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" /> : <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" />}
                 </svg>
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-gray-700">
-                  <span className="font-medium">{action.action}</span>
-                  <span className="text-gray-400"> • {action.item}</span>
-                </p>
-                <p className="text-xs text-gray-400">
-                  {action.user} • {action.time}
-                </p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ font: `500 13px/1.3 ${font}`, color: fg1 }}><strong>{a.action}</strong> · {a.item}</div>
+                <div style={{ font: `500 11px/1.3 ${font}`, color: fg3 }}>{a.user} · {a.time}</div>
               </div>
             </div>
           ))}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
