@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '@/lib/ThemeContext';
 import { useCatalyst, ChatMessage } from '@/lib/CatalystContext';
-import { useAppContext } from '@/lib/AppContext';
 
 const font = 'var(--font-sans, ui-sans-serif, system-ui, sans-serif)';
 
@@ -14,10 +13,128 @@ const QUICK_ACTIONS = [
   { label: 'Engine signals', prompt: 'What engine recommendations are pending?' },
 ];
 
+// Mock responses for placeholder mode
+const MOCK_RESPONSES: Record<string, string> = {
+  'performance': `📊 **Performance Overview**
+
+Here's how you're doing this week:
+
+• **GMV**: AED 124M (+6.7% vs last week)
+• **Orders**: 1.68M (+6.2%)
+• **Items Sold**: 12.3M (+8.2%)
+• **Active Stores**: 45
+
+📈 **Top Categories:**
+1. Beverages - AED 38M
+2. Dairy & Eggs - AED 28M
+3. Snacks - AED 18M
+
+💡 *Tip: Your Beverages category is outperforming others by 35%*`,
+  'attention': `⚠️ **SKUs Needing Attention**
+
+I found **7 SKUs** that need your attention:
+
+**On-Hold (3):**
+• Organic Almond Milk 1L - 72% availability
+• Premium Saffron 1g - 65% availability
+• Imported Olive Oil 500ml - 78% availability
+
+**Slow Movers (2):**
+• Head & Shoulders Shampoo 400ml - 320 units/week
+• Generic Soap Bar - 5 units/week
+
+**Engine Signals (2):**
+• Almarai Greek Yogurt 400g - Lifecycle review
+• Mountain Dew 500ml - Profitability opportunity
+
+Would you like me to take action on any of these?`,
+  'slow': `🐌 **Slow-Moving SKUs**
+
+Found **5 slow movers** in your category:
+
+| SKU | Units/Week | Availability | Margin |
+|-----|-----------|--------------|--------|
+| Organic Almond Milk 1L | 45 | 72% | 30% |
+| Premium Saffron 1g | 12 | 65% | 30% |
+| Imported Olive Oil 500ml | 85 | 78% | 30% |
+| Head & Shoulders 400ml | 320 | 82% | 35% |
+| Generic Soap Bar | 5 | 28% | 30% |
+
+💡 **Recommendation:** Consider putting items with <50 units/week on hold or clearance.
+
+Shall I prepare a bulk status change?`,
+  'engine': `🔧 **Engine Recommendations**
+
+**Choice Engine** (2 pending):
+• Add Sadia Choc Milk 200ml - 91% confidence
+• Add Oat milk 1L - 85% confidence
+
+**Lifecycle Engine** (3 pending):
+• Review Almarai Greek Yogurt 400g
+• Review Kinder Chocolate 100g
+• Review Tide Detergent 2kg
+
+**Affordability Engine** (2 pending):
+• Lacnor Orange Juice 1L - Price match opportunity
+• Imported Olive Oil 500ml - Competitor price gap
+
+**Profitability Engine** (1 pending):
+• Red Bull 250ml - Margin optimization
+
+Would you like details on any specific recommendation?`,
+  'default': `I'm Cat-alyst, your AI category assistant! 🚀
+
+I can help you:
+• **Monitor** - Check KPIs, trends, and performance
+• **Analyze** - Find slow movers, gaps, opportunities
+• **Execute** - Update SKU statuses, manage clusters
+• **Recommend** - Get insights from engine signals
+
+Try asking me something like:
+- "How are we performing?"
+- "Show me slow movers in Dairy"
+- "Which SKUs need attention?"`,
+};
+
+// Simple keyword matching for mock responses
+function getMockResponse(userMessage: string): string {
+  const lower = userMessage.toLowerCase();
+
+  if (lower.includes('perform') || lower.includes('overview') || lower.includes('how are we') || lower.includes('kpi')) {
+    return MOCK_RESPONSES.performance;
+  }
+  if (lower.includes('attention') || lower.includes('need') || lower.includes('alert')) {
+    return MOCK_RESPONSES.attention;
+  }
+  if (lower.includes('slow') || lower.includes('mover') || lower.includes('zero')) {
+    return MOCK_RESPONSES.slow;
+  }
+  if (lower.includes('engine') || lower.includes('recommendation') || lower.includes('signal')) {
+    return MOCK_RESPONSES.engine;
+  }
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+    return "Hello! 👋 I'm Cat-alyst, your AI category assistant. How can I help you today?";
+  }
+  if (lower.includes('thank')) {
+    return "You're welcome! Let me know if you need anything else. 🙌";
+  }
+  if (lower.includes('help') || lower.includes('can you do')) {
+    return MOCK_RESPONSES.default;
+  }
+
+  // Default response with tool execution preview
+  return `I understand you're asking about "${userMessage.slice(0, 50)}${userMessage.length > 50 ? '...' : ''}".
+
+Let me fetch that information for you...
+
+*(In full mode, I would use the **search_skus** and **get_kpis** tools to give you real-time data. Currently running in demo mode with sample data.)*
+
+${MOCK_RESPONSES.default}`;
+}
+
 export function CatalystPanel() {
   const { theme } = useTheme();
   const { state, addMessage, updateMessage, setLoading } = useCatalyst();
-  const { state: appState } = useAppContext();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,93 +169,27 @@ export function CatalystPanel() {
     addMessage({ role: 'user', content: userMessage });
     setLoading(true);
 
-    // Create placeholder for assistant message
+    // Create placeholder for assistant message with streaming simulation
     const assistantMsgId = addMessage({ role: 'assistant', content: '', isStreaming: true });
 
-    try {
-      // Build messages for API
-      const apiMessages = state.messages
-        .filter(m => m.content) // Only include messages with content
-        .map(m => ({ role: m.role, content: m.content }));
+    // Simulate streaming with mock response
+    const mockResponse = getMockResponse(userMessage);
 
-      // Add the new user message
-      apiMessages.push({ role: 'user', content: userMessage });
-
-      // Call API with streaming
-      const response = await fetch('/api/catalyst', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: apiMessages,
-          context: {
-            entity: appState.entity,
-            category: appState.categoryL0,
-            dateRange: appState.dateRange,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+    // Simulate typing effect
+    let currentIndex = 0;
+    const typingInterval = setInterval(() => {
+      if (currentIndex < mockResponse.length) {
+        currentIndex += Math.floor(Math.random() * 5) + 3; // Random chunk size
+        const partialContent = mockResponse.slice(0, Math.min(currentIndex, mockResponse.length));
+        updateMessage(assistantMsgId, { content: partialContent });
+      } else {
+        clearInterval(typingInterval);
+        updateMessage(assistantMsgId, { content: mockResponse, isStreaming: false });
+        setLoading(false);
       }
+    }, 30);
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-
-                if (data.type === 'text') {
-                  fullContent += data.text;
-                  updateMessage(assistantMsgId, { content: fullContent });
-                } else if (data.type === 'tool_start') {
-                  updateMessage(assistantMsgId, {
-                    toolUse: { name: data.name, input: {} },
-                  });
-                } else if (data.type === 'tool_result') {
-                  updateMessage(assistantMsgId, {
-                    toolUse: {
-                      name: data.name,
-                      input: {},
-                      result: data.result,
-                    },
-                  });
-                } else if (data.type === 'error') {
-                  updateMessage(assistantMsgId, {
-                    content: `Error: ${data.message}`,
-                    isStreaming: false,
-                  });
-                }
-              } catch {
-                // Skip invalid JSON
-              }
-            }
-          }
-        }
-      }
-
-      updateMessage(assistantMsgId, { isStreaming: false });
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      updateMessage(assistantMsgId, {
-        content: 'Sorry, I encountered an error. Please try again.',
-        isStreaming: false,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [state.messages, state.isLoading, appState, addMessage, updateMessage, setLoading]);
+  }, [state.isLoading, addMessage, updateMessage, setLoading]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
