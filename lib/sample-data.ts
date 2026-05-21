@@ -921,6 +921,292 @@ export const DH_ENTITIES = [
   'MXFAD',
 ];
 
+// ============================================
+// SUPPLIER PERFORMANCE SCORECARD (SPS) DATA
+// ============================================
+
+export type SupplierSegment = 'key-accounts' | 'standard' | 'niche' | 'long-tail';
+export type SupplierRisk = 'low' | 'medium' | 'high';
+
+export interface SupplierScorecard {
+  id: string;
+  name: string;
+  segment: SupplierSegment;
+  // Importance metrics
+  netRetailProfit: number;
+  customerFrequency: number;
+  customerPenetration: number;
+  abvOrder: number;
+  // Commercial metrics
+  frontMargin: number;
+  backMargin: number;
+  totalMargin: number;
+  promoGpvContribution: number;
+  yoyGpvGrowth: number;
+  // Ops metrics
+  fillRate: number;
+  onTimeDelivery: number;
+  efficiency: number;
+  // Scores
+  importanceScore: number;
+  commercialScore: number;
+  opsScore: number;
+  totalScore: number;
+  // Additional
+  skus: number;
+  gmv: number;
+  gmvShare: number;
+  risk: SupplierRisk;
+  categories: string[];
+  hasBackMarginAgreement: boolean;
+  opportunityValue: number;
+  opportunityType: string;
+}
+
+// Sample SPS data based on Kuwait case study
+export const SAMPLE_SUPPLIER_SCORECARD: SupplierScorecard[] = [
+  {
+    id: 'sup-001',
+    name: 'Almarai',
+    segment: 'key-accounts',
+    netRetailProfit: 380000,
+    customerFrequency: 4.2,
+    customerPenetration: 78,
+    abvOrder: 18.5,
+    frontMargin: 23,
+    backMargin: 5.2,
+    totalMargin: 28.2,
+    promoGpvContribution: 12,
+    yoyGpvGrowth: 8,
+    fillRate: 94,
+    onTimeDelivery: 91,
+    efficiency: 85,
+    importanceScore: 82,
+    commercialScore: 71,
+    opsScore: 88,
+    totalScore: 80,
+    skus: 5,
+    gmv: 420000,
+    gmvShare: 18,
+    risk: 'low',
+    categories: ['Dairy & Eggs', 'Beverages'],
+    hasBackMarginAgreement: true,
+    opportunityValue: 0,
+    opportunityType: '',
+  },
+  {
+    id: 'sup-002',
+    name: 'PepsiCo',
+    segment: 'key-accounts',
+    netRetailProfit: 420000,
+    customerFrequency: 3.8,
+    customerPenetration: 82,
+    abvOrder: 17.2,
+    frontMargin: 23,
+    backMargin: 4.8,
+    totalMargin: 27.8,
+    promoGpvContribution: 18,
+    yoyGpvGrowth: 12,
+    fillRate: 96,
+    onTimeDelivery: 94,
+    efficiency: 88,
+    importanceScore: 85,
+    commercialScore: 74,
+    opsScore: 92,
+    totalScore: 84,
+    skus: 4,
+    gmv: 450000,
+    gmvShare: 19,
+    risk: 'low',
+    categories: ['Beverages', 'Snacks'],
+    hasBackMarginAgreement: true,
+    opportunityValue: 0,
+    opportunityType: '',
+  },
+  {
+    id: 'sup-003',
+    name: 'Nestle',
+    segment: 'key-accounts',
+    netRetailProfit: 340000,
+    customerFrequency: 3.2,
+    customerPenetration: 65,
+    abvOrder: 19.8,
+    frontMargin: 22,
+    backMargin: 6.1,
+    totalMargin: 28.1,
+    promoGpvContribution: 15,
+    yoyGpvGrowth: 5,
+    fillRate: 89,
+    onTimeDelivery: 86,
+    efficiency: 82,
+    importanceScore: 72,
+    commercialScore: 76,
+    opsScore: 85,
+    totalScore: 78,
+    skus: 6,
+    gmv: 380000,
+    gmvShare: 16,
+    risk: 'low',
+    categories: ['Beverages', 'Dairy & Eggs'],
+    hasBackMarginAgreement: true,
+    opportunityValue: 0,
+    opportunityType: '',
+  },
+  {
+    id: 'sup-004',
+    name: 'Mondelez',
+    segment: 'key-accounts',
+    netRetailProfit: 280000,
+    customerFrequency: 2.9,
+    customerPenetration: 58,
+    abvOrder: 16.5,
+    frontMargin: 24,
+    backMargin: 3.5,
+    totalMargin: 27.5,
+    promoGpvContribution: 22,
+    yoyGpvGrowth: -3,
+    fillRate: 85,
+    onTimeDelivery: 82,
+    efficiency: 78,
+    importanceScore: 65,
+    commercialScore: 68,
+    opsScore: 81,
+    totalScore: 72,
+    skus: 3,
+    gmv: 280000,
+    gmvShare: 12,
+    risk: 'medium',
+    categories: ['Snacks'],
+    hasBackMarginAgreement: true,
+    opportunityValue: 15000,
+    opportunityType: 'volume-discount',
+  },
+  {
+    id: 'sup-005',
+    name: 'Blue Diamond',
+    segment: 'standard',
+    netRetailProfit: 45000,
+    customerFrequency: 1.8,
+    customerPenetration: 28,
+    abvOrder: 14.2,
+    frontMargin: 18,
+    backMargin: 0,
+    totalMargin: 18,
+    promoGpvContribution: 8,
+    yoyGpvGrowth: -15,
+    fillRate: 72,
+    onTimeDelivery: 68,
+    efficiency: 55,
+    importanceScore: 32,
+    commercialScore: 38,
+    opsScore: 65,
+    totalScore: 45,
+    skus: 2,
+    gmv: 32000,
+    gmvShare: 1.4,
+    risk: 'high',
+    categories: ['Dairy & Eggs'],
+    hasBackMarginAgreement: false,
+    opportunityValue: 8500,
+    opportunityType: 'low-margin',
+  },
+  {
+    id: 'sup-006',
+    name: 'Ferrero',
+    segment: 'standard',
+    netRetailProfit: 85000,
+    customerFrequency: 2.1,
+    customerPenetration: 35,
+    abvOrder: 17.8,
+    frontMargin: 25,
+    backMargin: 2.8,
+    totalMargin: 27.8,
+    promoGpvContribution: 14,
+    yoyGpvGrowth: 6,
+    fillRate: 88,
+    onTimeDelivery: 85,
+    efficiency: 75,
+    importanceScore: 42,
+    commercialScore: 65,
+    opsScore: 82,
+    totalScore: 63,
+    skus: 2,
+    gmv: 78000,
+    gmvShare: 3.3,
+    risk: 'medium',
+    categories: ['Snacks'],
+    hasBackMarginAgreement: true,
+    opportunityValue: 5000,
+    opportunityType: 'volume-discount',
+  },
+  {
+    id: 'sup-007',
+    name: 'Local Foods LLC',
+    segment: 'long-tail',
+    netRetailProfit: 12000,
+    customerFrequency: 1.2,
+    customerPenetration: 12,
+    abvOrder: 11.5,
+    frontMargin: 15,
+    backMargin: 0,
+    totalMargin: 15,
+    promoGpvContribution: 5,
+    yoyGpvGrowth: -25,
+    fillRate: 58,
+    onTimeDelivery: 52,
+    efficiency: 35,
+    importanceScore: 15,
+    commercialScore: 28,
+    opsScore: 48,
+    totalScore: 30,
+    skus: 1,
+    gmv: 8500,
+    gmvShare: 0.4,
+    risk: 'high',
+    categories: ['Snacks'],
+    hasBackMarginAgreement: false,
+    opportunityValue: 3000,
+    opportunityType: 'delist',
+  },
+  {
+    id: 'sup-008',
+    name: 'Red Bull',
+    segment: 'standard',
+    netRetailProfit: 95000,
+    customerFrequency: 2.4,
+    customerPenetration: 42,
+    abvOrder: 21.5,
+    frontMargin: 28,
+    backMargin: 4.2,
+    totalMargin: 32.2,
+    promoGpvContribution: 20,
+    yoyGpvGrowth: 18,
+    fillRate: 91,
+    onTimeDelivery: 88,
+    efficiency: 82,
+    importanceScore: 48,
+    commercialScore: 78,
+    opsScore: 86,
+    totalScore: 71,
+    skus: 1,
+    gmv: 95000,
+    gmvShare: 4.1,
+    risk: 'low',
+    categories: ['Beverages'],
+    hasBackMarginAgreement: true,
+    opportunityValue: 0,
+    opportunityType: '',
+  },
+];
+
+// Segment definitions
+export const SUPPLIER_SEGMENTS = {
+  'key-accounts': { label: 'Key Accounts', description: 'Drive majority of business value', color: '#4629FF' },
+  'standard': { label: 'Standard', description: 'Contribute to bottom line', color: '#047538' },
+  'niche': { label: 'Niche', description: 'High penetration, low contribution', color: '#8F5D00' },
+  'long-tail': { label: 'Long Tail', description: 'Supplement assortment', color: '#6C6D73' },
+};
+
 // Categories
 export const CATEGORIES = [
   { name: 'All Categories', path: '/' },
