@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { SAMPLE_SKUS, Warehouse, SKUStatus, WAREHOUSE_CLUSTERS } from '@/lib/sample-data';
+import { useState, useMemo, useCallback } from 'react';
+import { SAMPLE_SKUS, Warehouse, SKUStatus, WAREHOUSE_CLUSTERS, UAE_WAREHOUSES } from '@/lib/sample-data';
 import { useTheme } from '@/lib/ThemeContext';
 import { exportData, generateFilename, ExportColumn } from '@/lib/export';
 import { ExportButton } from '@/components/ExportButton';
@@ -14,7 +14,7 @@ const CATEGORIES_L0 = [
   { id: 'home-pet', name: 'Home & Pet' }, { id: 'frozen', name: 'Frozen Foods' }, { id: 'packaged-foods', name: 'Packaged Foods' },
 ];
 
-const statusStyle: Record<string, { bg: string; fg: string }> = { active: { bg: '#E5F5EC', fg: '#047538' }, 'on-hold': { bg: '#FFF8DF', fg: '#8F5D00' }, discontinued: { bg: '#FCEBE8', fg: '#BF280A' }, 'phase-out': { bg: '#FCEBE8', fg: '#BF280A' } };
+const statusStyle: Record<string, { bg: string; fg: string }> = { active: { bg: '#E5F5EC', fg: '#047538' }, 'on-hold': { bg: '#FFF8DF', fg: '#8F5D00' }, discontinued: { bg: '#FCEBE8', fg: '#BF280A' }, 'phase-out': { bg: '#FCEBE8', fg: '#BF280A' }, 'ready-for-po': { bg: '#DCFCE7', fg: '#15803D' }, retired: { bg: '#E9EAEC', fg: '#6C6D73' }, blocked: { bg: '#44403C', fg: '#FAFAF9' } };
 const maturityStyle: Record<string, { bg: string; fg: string }> = { mature: { bg: '#E5F5EC', fg: '#047538' }, probation: { bg: '#EDEBFF', fg: '#3A22D5' }, review: { bg: '#FFF8DF', fg: '#8F5D00' }, 'phase-out': { bg: '#FCEBE8', fg: '#BF280A' }, new: { bg: '#EDEBFF', fg: '#4629FF' } };
 const engineDots: Record<string, string> = { choice: '#4629FF', affordability: '#FFC400', lifecycle: '#6635B6', profitability: '#047538' };
 
@@ -39,6 +39,13 @@ interface SKURow {
   availability: number;
 }
 
+const STATUS_OPTIONS: { value: SKUStatus; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'on-hold', label: 'On Hold' },
+  { value: 'discontinued', label: 'Discontinued' },
+  { value: 'retired', label: 'Retired' },
+];
+
 export default function SKUControlTowerPage() {
   const { theme } = useTheme();
   const t = theme === 'dark';
@@ -47,40 +54,34 @@ export default function SKUControlTowerPage() {
   const [skus, setSkus] = useState<SKURow[]>(SAMPLE_SKUS);
   const [loading, setLoading] = useState(false);
   const [selectedSKU, setSelectedSKU] = useState<SKURow | null>(null);
+  const [viewMode, setViewMode] = useState<'sku' | 'matrix'>('sku');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [supplierFilter, setSupplierFilter] = useState('all');
+  const [hoveredCell, setHoveredCell] = useState<{ skuId: string; warehouse: Warehouse } | null>(null);
 
   const card: React.CSSProperties = { background: t ? '#1E1E20' : '#fff', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 12 };
   const fg1 = t ? '#fff' : '#141415';
   const fg2 = t ? '#b9bac1' : '#6C6D73';
   const fg3 = t ? '#6C6D73' : '#93949D';
 
-  // Fetch SKUs from API when filter/search changes
-  useEffect(() => {
-    const fetchSKUs = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (filter !== 'all') params.append('status', filter);
-        if (search) params.append('search', search);
-        params.append('limit', '50');
-
-        const res = await fetch(`/api/skus?${params}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSkus(data.length > 0 ? data : SAMPLE_SKUS);
-        }
-      } catch (error) {
-        console.error('Failed to fetch SKUs:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Debounce search
-    const timer = setTimeout(fetchSKUs, 300);
-    return () => clearTimeout(timer);
-  }, [filter, search]);
-
   const counts = { all: skus.length, active: skus.filter(s => s.status === 'active').length, 'on-hold': skus.filter(s => s.status === 'on-hold').length, discontinued: skus.filter(s => s.status === 'discontinued').length };
+
+  // Get unique suppliers for filter
+  const suppliers = useMemo(() => {
+    const uniqueSuppliers = [...new Set(skus.map(s => s.supplier))];
+    return uniqueSuppliers.sort();
+  }, [skus]);
+
+  // Filtered SKUs for matrix view
+  const filteredSkus = useMemo(() => {
+    return skus.filter(sku => {
+      const matchesStatus = filter === 'all' || sku.status === filter;
+      const matchesCategory = categoryFilter === 'all' || sku.category === categoryFilter;
+      const matchesSupplier = supplierFilter === 'all' || sku.supplier === supplierFilter;
+      const matchesSearch = !search || sku.name.toLowerCase().includes(search.toLowerCase()) || sku.skuId.toLowerCase().includes(search.toLowerCase()) || sku.supplier.toLowerCase().includes(search.toLowerCase());
+      return matchesStatus && matchesCategory && matchesSupplier && matchesSearch;
+    });
+  }, [skus, filter, categoryFilter, supplierFilter, search]);
 
   // Status distribution chart data
   const statusChartData = [
@@ -118,11 +119,95 @@ export default function SKUControlTowerPage() {
     { label: 'Needs Action', value: String(skus.filter(s => s.engineSignals.length > 0).length), color: '#D62D0B' },
   ];
 
+  // Handle status change in matrix view
+  const handleMatrixStatusChange = (skuId: string, warehouse: Warehouse, newStatus: SKUStatus) => {
+    setSkus(prevSkus => prevSkus.map(sku => {
+      if (sku.skuId === skuId) {
+        return {
+          ...sku,
+          warehouses: sku.warehouses.map(w =>
+            w.warehouse === warehouse ? { ...w, status: newStatus, inStock: newStatus === 'active' } : w
+          ),
+        };
+      }
+      return sku;
+    }));
+  };
+
+  // Handle bulk status change (chain override)
+  const handleBulkStatusChange = (skuId: string, newStatus: SKUStatus) => {
+    setSkus(prevSkus => prevSkus.map(sku => {
+      if (sku.skuId === skuId) {
+        return {
+          ...sku,
+          status: newStatus,
+          warehouses: sku.warehouses.map(w => ({
+            ...w,
+            status: newStatus,
+            inStock: newStatus === 'active',
+          })),
+        };
+      }
+      return sku;
+    }));
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <div style={{ font: `700 28px/1.25 ${font}`, letterSpacing: '-0.01em', color: fg1 }}>SKU Control Tower</div>
-        <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>End-to-end SKU visibility across all warehouses {loading && '· Loading...'}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ font: `700 28px/1.25 ${font}`, letterSpacing: '-0.01em', color: fg1 }}>SKU Control Tower</div>
+          <div style={{ font: `500 14px/1.5 ${font}`, color: fg2, marginTop: 4 }}>End-to-end SKU visibility across all warehouses {loading && '· Loading...'}</div>
+        </div>
+
+        {/* View Toggle */}
+        <div style={{ display: 'flex', gap: 2, background: t ? '#1E1E20' : '#F4F5F6', borderRadius: 10, padding: 4, border: `1px solid ${t ? '#343437' : '#E9EAEC'}` }}>
+          <button
+            onClick={() => setViewMode('sku')}
+            style={{
+              padding: '10px 20px',
+              border: 0,
+              borderRadius: 8,
+              cursor: 'pointer',
+              font: `600 13px/1 ${font}`,
+              background: viewMode === 'sku' ? (t ? '#343437' : '#fff') : 'transparent',
+              color: viewMode === 'sku' ? fg1 : fg3,
+              boxShadow: viewMode === 'sku' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 150ms',
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+              </svg>
+              SKU View
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode('matrix')}
+            style={{
+              padding: '10px 20px',
+              border: 0,
+              borderRadius: 8,
+              cursor: 'pointer',
+              font: `600 13px/1 ${font}`,
+              background: viewMode === 'matrix' ? (t ? '#343437' : '#fff') : 'transparent',
+              color: viewMode === 'matrix' ? fg1 : fg3,
+              boxShadow: viewMode === 'matrix' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 150ms',
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+              Matrix View
+            </span>
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
@@ -134,146 +219,384 @@ export default function SKUControlTowerPage() {
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        {Object.entries(counts).map(([k, v]) => (
-          <button key={k} onClick={() => setFilter(k)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 200, cursor: 'pointer',
-            border: `1px solid ${filter === k ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`,
-            background: filter === k ? (t ? 'rgba(70,41,255,0.15)' : '#EDEBFF') : 'transparent',
-            color: filter === k ? '#4629FF' : fg2, font: `600 12px/1 ${font}`,
-          }}>
-            {k === 'all' ? 'All' : k.charAt(0).toUpperCase() + k.slice(1).replace('-', ' ')}
-            <span style={{ font: `500 10px/1 ${mono}`, opacity: 0.7 }}>{v}</span>
-          </button>
-        ))}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ExportButton onExport={handleExport} isDark={t} />
-          <div style={{ position: 'relative' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: fg2 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search SKUs, suppliers…" style={{ width: 260, padding: '8px 12px 8px 32px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }} />
+      {/* SKU View */}
+      {viewMode === 'sku' && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {Object.entries(counts).map(([k, v]) => (
+              <button key={k} onClick={() => setFilter(k)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 200, cursor: 'pointer',
+                border: `1px solid ${filter === k ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`,
+                background: filter === k ? (t ? 'rgba(70,41,255,0.15)' : '#EDEBFF') : 'transparent',
+                color: filter === k ? '#4629FF' : fg2, font: `600 12px/1 ${font}`,
+              }}>
+                {k === 'all' ? 'All' : k.charAt(0).toUpperCase() + k.slice(1).replace('-', ' ')}
+                <span style={{ font: `500 10px/1 ${mono}`, opacity: 0.7 }}>{v}</span>
+              </button>
+            ))}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ExportButton onExport={handleExport} isDark={t} />
+              <div style={{ position: 'relative' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: fg2 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search SKUs, suppliers…" style={{ width: 260, padding: '8px 12px 8px 32px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }} />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Status Distribution Chart */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ font: `700 14px/1.3 ${font}`, color: fg1, marginBottom: 12 }}>Status Distribution</div>
-          <StatusDistributionChart data={statusChartData} height={140} />
-        </div>
-        <div style={{ ...card, padding: 20 }}>
-          <div style={{ font: `700 14px/1.3 ${font}`, color: fg1, marginBottom: 8 }}>Category Breakdown</div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {CATEGORIES_L0.slice(1, 7).map(cat => {
-              const catCount = skus.filter(s => s.category === cat.id).length;
-              const catPct = skus.length ? Math.round(catCount / skus.length * 100) : 0;
+          {/* Status Distribution Chart */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
+            <div style={{ ...card, padding: 20 }}>
+              <div style={{ font: `700 14px/1.3 ${font}`, color: fg1, marginBottom: 12 }}>Status Distribution</div>
+              <StatusDistributionChart data={statusChartData} height={140} />
+            </div>
+            <div style={{ ...card, padding: 20 }}>
+              <div style={{ font: `700 14px/1.3 ${font}`, color: fg1, marginBottom: 8 }}>Category Breakdown</div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {CATEGORIES_L0.slice(1, 7).map(cat => {
+                  const catCount = skus.filter(s => s.category === cat.id).length;
+                  const catPct = skus.length ? Math.round(catCount / skus.length * 100) : 0;
+                  return (
+                    <div key={cat.id} style={{ minWidth: 120 }}>
+                      <div style={{ font: `500 11px/1 ${font}`, color: fg3 }}>{cat.name}</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
+                        <span style={{ font: `700 18px/1 ${font}`, color: fg1 }}>{catCount}</span>
+                        <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>{catPct}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: selectedSKU ? '1fr 380px' : '1fr', gap: 16 }}>
+            <div style={{ ...card, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: t ? '#343437' : '#F4F5F6' }}>
+                    {['SKU Name', 'Category', 'Status', 'Stage', 'WH', 'Cost', 'Price', 'Margin', 'Signals'].map(h => (
+                      <th key={h} style={{ textAlign: h === 'Cost' || h === 'Price' || h === 'Margin' ? 'right' : h === 'WH' || h === 'Signals' ? 'center' : 'left', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {skus.map(row => {
+                    const ss = statusStyle[row.status] || statusStyle.active;
+                    const ms = maturityStyle[row.maturityStage] || maturityStyle.mature;
+                    const active = selectedSKU?.skuId === row.skuId;
+                    return (
+                      <tr
+                        key={row.skuId}
+                        onClick={() => setSelectedSKU(row)}
+                        style={{
+                          borderBottom: `1px solid ${t ? '#343437' : '#F4F5F6'}`,
+                          cursor: 'pointer',
+                          background: active ? (t ? 'rgba(70,41,255,0.06)' : 'rgba(70,41,255,0.02)') : 'transparent',
+                        }}
+                      >
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ font: `600 13px/1.3 ${font}`, color: fg1 }}>{row.name}</div>
+                          <div style={{ font: `500 11px/1.3 ${font}`, color: fg3 }}>{row.supplier}</div>
+                        </td>
+                        <td style={{ padding: '12px 14px', font: `500 12px/1 ${font}`, color: fg2 }}>{CATEGORIES_L0.find(c => c.id === row.category)?.name || row.category}</td>
+                        <td style={{ padding: '12px 14px' }}><span style={{ background: t ? `${ss.fg}18` : ss.bg, color: ss.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.status.replace('-', ' ')}</span></td>
+                        <td style={{ padding: '12px 14px' }}><span style={{ background: t ? `${ms.fg}18` : ms.bg, color: ms.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.maturityStage.replace('-', ' ')}</span></td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                            {row.warehouses.map((w, i) => <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: w.inStock ? '#047538' : (t ? '#434347' : '#E9EAEC') }} title={`${w.warehouse}: ${w.quantity}`} />)}
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>{row.costPrice.toFixed(2)}</td>
+                        <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>{row.basePrice.toFixed(2)}{row.discount ? <span style={{ color: '#D62D0B', fontSize: 10, marginLeft: 4 }}>-{row.discount}%</span> : null}</td>
+                        <td style={{ padding: '12px 14px', font: `600 12px/1 ${mono}`, color: row.margin >= 30 ? '#047538' : row.margin >= 20 ? '#8F5D00' : '#D62D0B', textAlign: 'right' }}>{row.margin}%</td>
+                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+                            {row.engineSignals.map((s, i) => <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: engineDots[s] || '#93949D', display: 'inline-block' }} title={s} />)}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {selectedSKU && (
+              <SKUDrilldownPanel
+                sku={selectedSKU}
+                onClose={() => setSelectedSKU(null)}
+                onUpdateStatus={(warehouse, status) => {
+                  setSkus(prevSkus => prevSkus.map(sku => {
+                    if (sku.skuId === selectedSKU.skuId) {
+                      return {
+                        ...sku,
+                        warehouses: sku.warehouses.map(w =>
+                          w.warehouse === warehouse ? { ...w, status, inStock: status === 'active' } : w
+                        ),
+                      };
+                    }
+                    return sku;
+                  }));
+                }}
+                onUpdateClusterStatus={(clusterId, status) => {
+                  const cluster = WAREHOUSE_CLUSTERS.find(c => c.id === clusterId);
+                  if (cluster) {
+                    setSkus(prevSkus => prevSkus.map(sku => {
+                      if (sku.skuId === selectedSKU.skuId) {
+                        return {
+                          ...sku,
+                          warehouses: sku.warehouses.map(w =>
+                            cluster.warehouses.includes(w.warehouse)
+                              ? { ...w, status, inStock: status === 'active' }
+                              : w
+                          ),
+                        };
+                      }
+                      return sku;
+                    }));
+                  }
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Matrix View */}
+      {viewMode === 'matrix' && (
+        <>
+          {/* Filters Bar */}
+          <div style={{ ...card, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: fg2 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search SKUs, suppliers…"
+                style={{ width: 220, padding: '8px 12px 8px 32px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }}
+              />
+            </div>
+
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              style={{ padding: '8px 32px 8px 12px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
+            >
+              <option value="all">All Categories</option>
+              {CATEGORIES_L0.slice(1).map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={supplierFilter}
+              onChange={e => setSupplierFilter(e.target.value)}
+              style={{ padding: '8px 32px 8px 12px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
+            >
+              <option value="all">All Suppliers</option>
+              {suppliers.map(sup => (
+                <option key={sup} value={sup}>{sup}</option>
+              ))}
+            </select>
+
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ font: `500 12px/1 ${font}`, color: fg3 }}>
+                {filteredSkus.length} of {skus.length} SKUs
+              </span>
+              <ExportButton onExport={handleExport} isDark={t} />
+            </div>
+          </div>
+
+          {/* Status Legend */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 0' }}>
+            <span style={{ font: `600 11px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status Legend:</span>
+            {STATUS_OPTIONS.map(opt => {
+              const ss = statusStyle[opt.value];
               return (
-                <div key={cat.id} style={{ minWidth: 120 }}>
-                  <div style={{ font: `500 11px/1 ${font}`, color: fg3 }}>{cat.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
-                    <span style={{ font: `700 18px/1 ${font}`, color: fg1 }}>{catCount}</span>
-                    <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>{catPct}%</span>
-                  </div>
-                </div>
+                <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: 3, background: ss.bg, border: `1px solid ${ss.fg}30` }} />
+                  <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>{opt.label}</span>
+                </span>
               );
             })}
           </div>
-        </div>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedSKU ? '1fr 380px' : '1fr', gap: 16 }}>
-        <div style={{ ...card, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: t ? '#343437' : '#F4F5F6' }}>
-                {['SKU Name', 'Category', 'Status', 'Stage', 'WH', 'Cost', 'Price', 'Margin', 'Signals'].map(h => (
-                  <th key={h} style={{ textAlign: h === 'Cost' || h === 'Price' || h === 'Margin' ? 'right' : h === 'WH' || h === 'Signals' ? 'center' : 'left', padding: '10px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {skus.map(row => {
-                const ss = statusStyle[row.status] || statusStyle.active;
-                const ms = maturityStyle[row.maturityStage] || maturityStyle.mature;
-                const active = selectedSKU?.skuId === row.skuId;
-                return (
-                  <tr
-                    key={row.skuId}
-                    onClick={() => setSelectedSKU(row)}
-                    onDoubleClick={() => setSelectedSKU(row)}
-                    style={{
-                      borderBottom: `1px solid ${t ? '#343437' : '#F4F5F6'}`,
-                      cursor: 'pointer',
-                      background: active ? (t ? 'rgba(70,41,255,0.06)' : 'rgba(70,41,255,0.02)') : 'transparent',
-                    }}
-                  >
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ font: `600 13px/1.3 ${font}`, color: fg1 }}>{row.name}</div>
-                      <div style={{ font: `500 11px/1.3 ${font}`, color: fg3 }}>{row.supplier}</div>
-                    </td>
-                    <td style={{ padding: '12px 14px', font: `500 12px/1 ${font}`, color: fg2 }}>{CATEGORIES_L0.find(c => c.id === row.category)?.name || row.category}</td>
-                    <td style={{ padding: '12px 14px' }}><span style={{ background: t ? `${ss.fg}18` : ss.bg, color: ss.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.status.replace('-', ' ')}</span></td>
-                    <td style={{ padding: '12px 14px' }}><span style={{ background: t ? `${ms.fg}18` : ms.bg, color: ms.fg, font: `600 10px/1 ${font}`, padding: '4px 8px', borderRadius: 200, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{row.maturityStage.replace('-', ' ')}</span></td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                        {row.warehouses.map((w, i) => <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: w.inStock ? '#047538' : (t ? '#434347' : '#E9EAEC') }} title={`${w.warehouse}: ${w.quantity}`} />)}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>{row.costPrice.toFixed(2)}</td>
-                    <td style={{ padding: '12px 14px', font: `500 12px/1 ${mono}`, color: fg2, textAlign: 'right' }}>{row.basePrice.toFixed(2)}{row.discount ? <span style={{ color: '#D62D0B', fontSize: 10, marginLeft: 4 }}>-{row.discount}%</span> : null}</td>
-                    <td style={{ padding: '12px 14px', font: `600 12px/1 ${mono}`, color: row.margin >= 30 ? '#047538' : row.margin >= 20 ? '#8F5D00' : '#D62D0B', textAlign: 'right' }}>{row.margin}%</td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
-                        {row.engineSignals.map((s, i) => <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: engineDots[s] || '#93949D', display: 'inline-block' }} title={s} />)}
-                      </div>
-                    </td>
+          {/* Matrix Table */}
+          <div style={{ ...card, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+                <thead>
+                  <tr style={{ background: t ? '#343437' : '#F4F5F6' }}>
+                    <th style={{ textAlign: 'left', padding: '12px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', position: 'sticky', left: 0, background: t ? '#343437' : '#F4F5F6', zIndex: 10, minWidth: 200 }}>SKU / Supplier</th>
+                    <th style={{ textAlign: 'center', padding: '12px 8px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', minWidth: 100 }}>All Warehouses</th>
+                    {UAE_WAREHOUSES.map(wh => (
+                      <th key={wh} style={{ textAlign: 'center', padding: '12px 8px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', minWidth: 100 }}>
+                        <div>{wh.split(' ')[0]}</div>
+                        <div style={{ font: `500 9px/1 ${font}`, color: fg3, opacity: 0.7, marginTop: 2 }}>{wh.split(' ').slice(1).join(' ')}</div>
+                      </th>
+                    ))}
+                    <th style={{ textAlign: 'right', padding: '12px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', minWidth: 80 }}>Margin</th>
+                    <th style={{ textAlign: 'right', padding: '12px 14px', font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', minWidth: 80 }}>Units/Wk</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {filteredSkus.map((row, idx) => {
+                    // Calculate overall status for "All Warehouses"
+                    const allActive = row.warehouses.every(w => w.status === 'active' && w.inStock);
+                    const anyOnHold = row.warehouses.some(w => w.status === 'on-hold');
+                    const overallStatus: SKUStatus = allActive ? 'active' : anyOnHold ? 'on-hold' : 'discontinued';
+                    const oss = statusStyle[overallStatus] || statusStyle.active;
 
-        {selectedSKU && (
-          <SKUDrilldownPanel
-            sku={selectedSKU}
-            onClose={() => setSelectedSKU(null)}
-            onUpdateStatus={(warehouse, status) => {
-              // Update the SKU's warehouse status
-              setSkus(prevSkus => prevSkus.map(sku => {
-                if (sku.skuId === selectedSKU.skuId) {
-                  return {
-                    ...sku,
-                    warehouses: sku.warehouses.map(w =>
-                      w.warehouse === warehouse ? { ...w, status, inStock: status === 'active' } : w
-                    ),
-                  };
-                }
-                return sku;
-              }));
-            }}
-            onUpdateClusterStatus={(clusterId, status) => {
-              // Find the cluster and update all its warehouses
-              const cluster = WAREHOUSE_CLUSTERS.find(c => c.id === clusterId);
-              if (cluster) {
-                setSkus(prevSkus => prevSkus.map(sku => {
-                  if (sku.skuId === selectedSKU.skuId) {
-                    return {
-                      ...sku,
-                      warehouses: sku.warehouses.map(w =>
-                        cluster.warehouses.includes(w.warehouse)
-                          ? { ...w, status, inStock: status === 'active' }
-                          : w
-                      ),
-                    };
-                  }
-                  return sku;
-                }));
-              }
-            }}
-          />
-        )}
-      </div>
+                    return (
+                      <tr
+                        key={row.skuId}
+                        style={{
+                          borderBottom: `1px solid ${t ? '#343437' : '#F4F5F6'}`,
+                          background: idx % 2 === 0 ? 'transparent' : (t ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'),
+                        }}
+                      >
+                        {/* SKU Name Cell */}
+                        <td style={{ padding: '10px 14px', position: 'sticky', left: 0, background: t ? (idx % 2 === 0 ? '#1E1E20' : '#202022') : (idx % 2 === 0 ? '#fff' : '#FAFAFA'), zIndex: 5 }}>
+                          <div style={{ font: `600 12px/1.3 ${font}`, color: fg1 }}>{row.name}</div>
+                          <div style={{ font: `500 10px/1.3 ${font}`, color: fg3, marginTop: 2 }}>{row.supplier} · {row.skuId}</div>
+                        </td>
+
+                        {/* All Warehouses (Chain Override) */}
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <select
+                            value={overallStatus}
+                            onChange={(e) => handleBulkStatusChange(row.skuId, e.target.value as SKUStatus)}
+                            style={{
+                              width: '100%',
+                              padding: '6px 8px',
+                              border: 0,
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              font: `600 10px/1 ${font}`,
+                              background: t ? `${oss.fg}25` : oss.bg,
+                              color: oss.fg,
+                              appearance: 'none',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {STATUS_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* Warehouse Cells */}
+                        {UAE_WAREHOUSES.map(wh => {
+                          const whData = row.warehouses.find(w => w.warehouse === wh);
+                          const status = whData?.status || 'active';
+                          const inStock = whData?.inStock ?? false;
+                          const quantity = whData?.quantity || 0;
+                          const lastUpdated = whData?.lastUpdated || 'N/A';
+                          const ss = statusStyle[status] || statusStyle.active;
+                          const isHovered = hoveredCell?.skuId === row.skuId && hoveredCell?.warehouse === wh;
+
+                          return (
+                            <td
+                              key={wh}
+                              style={{ padding: '8px', textAlign: 'center', position: 'relative' }}
+                              onMouseEnter={() => setHoveredCell({ skuId: row.skuId, warehouse: wh })}
+                              onMouseLeave={() => setHoveredCell(null)}
+                            >
+                              <select
+                                value={status}
+                                onChange={(e) => handleMatrixStatusChange(row.skuId, wh, e.target.value as SKUStatus)}
+                                style={{
+                                  width: '100%',
+                                  padding: '6px 8px',
+                                  border: 0,
+                                  borderRadius: 6,
+                                  cursor: 'pointer',
+                                  font: `600 10px/1 ${font}`,
+                                  background: t ? `${ss.fg}25` : ss.bg,
+                                  color: ss.fg,
+                                  appearance: 'none',
+                                  textAlign: 'center',
+                                }}
+                              >
+                                {STATUS_OPTIONS.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+
+                              {/* Tooltip */}
+                              {isHovered && (
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: '100%',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  marginBottom: 8,
+                                  padding: '10px 12px',
+                                  background: t ? '#343437' : '#1f2937',
+                                  color: '#fff',
+                                  borderRadius: 8,
+                                  fontSize: 11,
+                                  whiteSpace: 'nowrap',
+                                  zIndex: 100,
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                                }}>
+                                  <div style={{ font: `600 12px/1.3 ${font}`, marginBottom: 6 }}>{wh}</div>
+                                  <div style={{ display: 'grid', gap: 4 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                      <span style={{ opacity: 0.7 }}>Status:</span>
+                                      <span style={{ font: `600 11px/1 ${font}` }}>{status.replace('-', ' ')}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                      <span style={{ opacity: 0.7 }}>Stock:</span>
+                                      <span style={{ font: `600 11px/1 ${font}`, color: inStock ? '#A2FAA3' : '#fca5a5' }}>{inStock ? `${quantity} units` : 'Out of stock'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                      <span style={{ opacity: 0.7 }}>Updated:</span>
+                                      <span style={{ font: `500 11px/1 ${font}` }}>{lastUpdated}</span>
+                                    </div>
+                                  </div>
+                                  <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', border: '6px solid transparent', borderTopColor: t ? '#343437' : '#1f2937' }} />
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+
+                        {/* Margin */}
+                        <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                          <span style={{ font: `700 12px/1 ${mono}`, color: row.margin >= 30 ? '#047538' : row.margin >= 20 ? '#8F5D00' : '#D62D0B' }}>
+                            {row.margin}%
+                          </span>
+                        </td>
+
+                        {/* Weekly Units */}
+                        <td style={{ padding: '10px 14px', textAlign: 'right', font: `500 12px/1 ${mono}`, color: fg2 }}>
+                          {row.weeklyUnitsSold.toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: `1px solid ${t ? '#343437' : '#E9EAEC'}` }}>
+              <span style={{ font: `500 12px/1 ${font}`, color: fg3 }}>1-{filteredSkus.length} of {skus.length} items</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button style={{ padding: '6px 12px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 6, background: 'transparent', color: fg2, font: `500 11px/1 ${font}`, cursor: 'pointer' }}>Prev</button>
+                <button style={{ padding: '6px 12px', border: '1px solid #4629FF', borderRadius: 6, background: '#4629FF', color: '#fff', font: `600 11px/1 ${font}`, cursor: 'pointer' }}>1</button>
+                <button style={{ padding: '6px 12px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 6, background: 'transparent', color: fg2, font: `500 11px/1 ${font}`, cursor: 'pointer' }}>Next</button>
+                <select style={{ marginLeft: 8, padding: '6px 28px 6px 8px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 6, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 11px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}>
+                  <option>20 / page</option>
+                  <option>50 / page</option>
+                  <option>100 / page</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
