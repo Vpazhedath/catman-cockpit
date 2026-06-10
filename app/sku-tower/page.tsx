@@ -46,6 +46,47 @@ const STATUS_OPTIONS: { value: SKUStatus; label: string }[] = [
   { value: 'retired', label: 'Retired' },
 ];
 
+const MATURITY_OPTIONS = [
+  { value: 'all', label: 'All Stages' },
+  { value: 'new', label: 'New' },
+  { value: 'probation', label: 'Probation' },
+  { value: 'mature', label: 'Mature' },
+  { value: 'review', label: 'Review' },
+  { value: 'phase-out', label: 'Phase Out' },
+];
+
+const EFFICIENCY_OPTIONS = [
+  { value: 'all', label: 'All Efficiency' },
+  { value: 'efficient', label: 'Efficient' },
+  { value: 'slow-mover', label: 'Slow Mover' },
+  { value: 'zero-mover', label: 'Zero Mover' },
+  { value: 'low-availability', label: 'Low Availability' },
+];
+
+const PRICE_RANGES = [
+  { value: 'all', label: 'All Prices', min: 0, max: Infinity },
+  { value: '0-5', label: 'AED 0 - 5', min: 0, max: 5 },
+  { value: '5-10', label: 'AED 5 - 10', min: 5, max: 10 },
+  { value: '10-20', label: 'AED 10 - 20', min: 10, max: 20 },
+  { value: '20-50', label: 'AED 20 - 50', min: 20, max: 50 },
+  { value: '50+', label: 'AED 50+', min: 50, max: Infinity },
+];
+
+const MARGIN_RANGES = [
+  { value: 'all', label: 'All Margins', min: 0, max: 100 },
+  { value: 'low', label: '< 20%', min: 0, max: 19 },
+  { value: 'medium', label: '20% - 30%', min: 20, max: 30 },
+  { value: 'high', label: '> 30%', min: 31, max: 100 },
+];
+
+const AVAILABILITY_RANGES = [
+  { value: 'all', label: 'All Availability', min: 0, max: 100 },
+  { value: 'critical', label: '< 70%', min: 0, max: 69 },
+  { value: 'low', label: '70% - 85%', min: 70, max: 85 },
+  { value: 'good', label: '85% - 95%', min: 85, max: 95 },
+  { value: 'excellent', label: '> 95%', min: 95, max: 100 },
+];
+
 export default function SKUControlTowerPage() {
   const { theme } = useTheme();
   const t = theme === 'dark';
@@ -57,7 +98,14 @@ export default function SKUControlTowerPage() {
   const [viewMode, setViewMode] = useState<'sku' | 'matrix'>('sku');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [supplierFilter, setSupplierFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [maturityFilter, setMaturityFilter] = useState('all');
+  const [efficiencyFilter, setEfficiencyFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [marginFilter, setMarginFilter] = useState('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [hoveredCell, setHoveredCell] = useState<{ skuId: string; warehouse: Warehouse } | null>(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const card: React.CSSProperties = { background: t ? '#1E1E20' : '#fff', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 12 };
   const fg1 = t ? '#fff' : '#141415';
@@ -74,14 +122,51 @@ export default function SKUControlTowerPage() {
 
   // Filtered SKUs for matrix view
   const filteredSkus = useMemo(() => {
+    const priceRange = PRICE_RANGES.find(r => r.value === priceFilter) || PRICE_RANGES[0];
+    const marginRange = MARGIN_RANGES.find(r => r.value === marginFilter) || MARGIN_RANGES[0];
+    const availRange = AVAILABILITY_RANGES.find(r => r.value === availabilityFilter) || AVAILABILITY_RANGES[0];
+
     return skus.filter(sku => {
-      const matchesStatus = filter === 'all' || sku.status === filter;
+      const matchesStatus = statusFilter === 'all' || sku.status === statusFilter;
       const matchesCategory = categoryFilter === 'all' || sku.category === categoryFilter;
       const matchesSupplier = supplierFilter === 'all' || sku.supplier === supplierFilter;
+      const matchesMaturity = maturityFilter === 'all' || sku.maturityStage === maturityFilter;
+      const matchesEfficiency = efficiencyFilter === 'all' || sku.efficiency === efficiencyFilter;
+      const matchesPrice = sku.basePrice >= priceRange.min && sku.basePrice < priceRange.max;
+      const matchesMargin = sku.margin >= marginRange.min && sku.margin <= marginRange.max;
+      const matchesAvailability = sku.availability >= availRange.min && sku.availability <= availRange.max;
       const matchesSearch = !search || sku.name.toLowerCase().includes(search.toLowerCase()) || sku.skuId.toLowerCase().includes(search.toLowerCase()) || sku.supplier.toLowerCase().includes(search.toLowerCase());
-      return matchesStatus && matchesCategory && matchesSupplier && matchesSearch;
+      return matchesStatus && matchesCategory && matchesSupplier && matchesMaturity && matchesEfficiency && matchesPrice && matchesMargin && matchesAvailability && matchesSearch;
     });
-  }, [skus, filter, categoryFilter, supplierFilter, search]);
+  }, [skus, statusFilter, categoryFilter, supplierFilter, maturityFilter, efficiencyFilter, priceFilter, marginFilter, availabilityFilter, search]);
+
+  // Active filter count
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (categoryFilter !== 'all') count++;
+    if (supplierFilter !== 'all') count++;
+    if (maturityFilter !== 'all') count++;
+    if (efficiencyFilter !== 'all') count++;
+    if (priceFilter !== 'all') count++;
+    if (marginFilter !== 'all') count++;
+    if (availabilityFilter !== 'all') count++;
+    if (search) count++;
+    return count;
+  }, [statusFilter, categoryFilter, supplierFilter, maturityFilter, efficiencyFilter, priceFilter, marginFilter, availabilityFilter, search]);
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setStatusFilter('all');
+    setCategoryFilter('all');
+    setSupplierFilter('all');
+    setMaturityFilter('all');
+    setEfficiencyFilter('all');
+    setPriceFilter('all');
+    setMarginFilter('all');
+    setAvailabilityFilter('all');
+    setSearch('');
+  };
 
   // Status distribution chart data
   const statusChartData = [
@@ -365,46 +450,189 @@ export default function SKUControlTowerPage() {
       {/* Matrix View */}
       {viewMode === 'matrix' && (
         <>
-          {/* Filters Bar */}
-          <div style={{ ...card, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: fg2 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search SKUs, suppliers…"
-                style={{ width: 220, padding: '8px 12px 8px 32px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }}
-              />
+          {/* Filters Bar - Row 1: Primary Filters */}
+          <div style={{ ...card, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: showAdvancedFilters ? 12 : 0 }}>
+              {/* Search */}
+              <div style={{ position: 'relative' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: fg2 }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search SKUs, suppliers…"
+                  style={{ width: 200, padding: '8px 12px 8px 32px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }}
+                />
+              </div>
+
+              {/* SKU Status */}
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                style={{ padding: '8px 28px 8px 10px', border: `1px solid ${statusFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+              >
+                <option value="all">All Status</option>
+                {STATUS_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+
+              {/* Category */}
+              <select
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                style={{ padding: '8px 28px 8px 10px', border: `1px solid ${categoryFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+              >
+                <option value="all">All Categories</option>
+                {CATEGORIES_L0.slice(1).map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+
+              {/* Supplier */}
+              <select
+                value={supplierFilter}
+                onChange={e => setSupplierFilter(e.target.value)}
+                style={{ padding: '8px 28px 8px 10px', border: `1px solid ${supplierFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+              >
+                <option value="all">All Suppliers</option>
+                {suppliers.map(sup => (
+                  <option key={sup} value={sup}>{sup}</option>
+                ))}
+              </select>
+
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Advanced Filters Toggle */}
+                <button
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 12px',
+                    border: `1px solid ${showAdvancedFilters ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`,
+                    borderRadius: 8,
+                    background: showAdvancedFilters ? (t ? 'rgba(70,41,255,0.15)' : '#EDEBFF') : 'transparent',
+                    color: showAdvancedFilters ? '#4629FF' : fg2,
+                    font: `600 12px/1 ${font}`,
+                    cursor: 'pointer',
+                    transition: 'all 150ms',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span style={{ background: '#4629FF', color: '#fff', font: `600 10px/1 ${font}`, padding: '2px 6px', borderRadius: 10 }}>{activeFilterCount}</span>
+                  )}
+                </button>
+
+                <span style={{ font: `500 12px/1 ${font}`, color: fg3 }}>
+                  {filteredSkus.length} of {skus.length} SKUs
+                </span>
+                <ExportButton onExport={handleExport} isDark={t} />
+              </div>
             </div>
 
-            <select
-              value={categoryFilter}
-              onChange={e => setCategoryFilter(e.target.value)}
-              style={{ padding: '8px 32px 8px 12px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
-            >
-              <option value="all">All Categories</option>
-              {CATEGORIES_L0.slice(1).map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
+            {/* Advanced Filters Row */}
+            {showAdvancedFilters && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 12, borderTop: `1px solid ${t ? '#343437' : '#E9EAEC'}` }}>
+                {/* Maturity Stage */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={{ font: `500 10px/1 ${font}`, color: fg3 }}>Maturity Stage</label>
+                  <select
+                    value={maturityFilter}
+                    onChange={e => setMaturityFilter(e.target.value)}
+                    style={{ padding: '8px 28px 8px 10px', border: `1px solid ${maturityFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+                  >
+                    {MATURITY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
 
-            <select
-              value={supplierFilter}
-              onChange={e => setSupplierFilter(e.target.value)}
-              style={{ padding: '8px 32px 8px 12px', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
-            >
-              <option value="all">All Suppliers</option>
-              {suppliers.map(sup => (
-                <option key={sup} value={sup}>{sup}</option>
-              ))}
-            </select>
+                {/* Efficiency */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={{ font: `500 10px/1 ${font}`, color: fg3 }}>Efficiency</label>
+                  <select
+                    value={efficiencyFilter}
+                    onChange={e => setEfficiencyFilter(e.target.value)}
+                    style={{ padding: '8px 28px 8px 10px', border: `1px solid ${efficiencyFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+                  >
+                    {EFFICIENCY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
 
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ font: `500 12px/1 ${font}`, color: fg3 }}>
-                {filteredSkus.length} of {skus.length} SKUs
-              </span>
-              <ExportButton onExport={handleExport} isDark={t} />
-            </div>
+                {/* Selling Price */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={{ font: `500 10px/1 ${font}`, color: fg3 }}>Selling Price</label>
+                  <select
+                    value={priceFilter}
+                    onChange={e => setPriceFilter(e.target.value)}
+                    style={{ padding: '8px 28px 8px 10px', border: `1px solid ${priceFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+                  >
+                    {PRICE_RANGES.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Margin */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={{ font: `500 10px/1 ${font}`, color: fg3 }}>Margin</label>
+                  <select
+                    value={marginFilter}
+                    onChange={e => setMarginFilter(e.target.value)}
+                    style={{ padding: '8px 28px 8px 10px', border: `1px solid ${marginFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+                  >
+                    {MARGIN_RANGES.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Availability */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={{ font: `500 10px/1 ${font}`, color: fg3 }}>Availability</label>
+                  <select
+                    value={availabilityFilter}
+                    onChange={e => setAvailabilityFilter(e.target.value)}
+                    style={{ padding: '8px 28px 8px 10px', border: `1px solid ${availabilityFilter !== 'all' ? '#4629FF' : (t ? '#343437' : '#E9EAEC')}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '14px' }}
+                  >
+                    {AVAILABILITY_RANGES.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Clear Filters */}
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '8px 12px',
+                      border: '1px solid #D62D0B',
+                      borderRadius: 8,
+                      background: t ? 'rgba(214,45,11,0.1)' : '#FCEBE8',
+                      color: '#D62D0B',
+                      font: `600 12px/1 ${font}`,
+                      cursor: 'pointer',
+                      marginTop: 16,
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Clear All
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Status Legend */}
