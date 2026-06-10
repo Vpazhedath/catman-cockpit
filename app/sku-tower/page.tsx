@@ -747,42 +747,44 @@ export default function SKUControlTowerPage() {
 
                         {/* All Warehouses Cell */}
                         <td style={{ padding: '8px', textAlign: 'center' }}>
-                          {matrixDisplayMode === 'price' ? (
-                            <div style={{
-                              font: `700 12px/1 ${mono}`,
-                              color: fg1,
-                              background: t ? 'rgba(70,41,255,0.1)' : '#EDEBFF',
-                              padding: '6px 8px',
-                              borderRadius: 6,
-                            }}>
-                              {row.discount ? (
-                                <>
-                                  <span style={{ textDecoration: 'line-through', opacity: 0.5, marginRight: 4 }}>{row.basePrice.toFixed(2)}</span>
-                                  <span style={{ color: '#D62D0B' }}>{(row.basePrice * (1 - row.discount / 100)).toFixed(2)}</span>
-                                </>
-                              ) : row.basePrice.toFixed(2)}
-                            </div>
-                          ) : matrixDisplayMode === 'quantity' ? (
-                            <div style={{
-                              font: `700 12px/1 ${mono}`,
-                              color: '#047538',
-                              background: t ? 'rgba(4,117,56,0.15)' : '#E5F5EC',
-                              padding: '6px 8px',
-                              borderRadius: 6,
-                            }}>
-                              {row.warehouses.reduce((sum, w) => sum + w.quantity, 0).toLocaleString()}
-                            </div>
-                          ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {matrixDisplayMode === 'price' ? (
+                              <div style={{
+                                font: `700 12px/1 ${mono}`,
+                                color: fg1,
+                                background: t ? 'rgba(70,41,255,0.1)' : '#EDEBFF',
+                                padding: '6px 8px',
+                                borderRadius: 6,
+                              }}>
+                                {row.discount ? (
+                                  <>
+                                    <span style={{ textDecoration: 'line-through', opacity: 0.5, marginRight: 4 }}>{row.basePrice.toFixed(2)}</span>
+                                    <span style={{ color: '#D62D0B' }}>{(row.basePrice * (1 - row.discount / 100)).toFixed(2)}</span>
+                                  </>
+                                ) : row.basePrice.toFixed(2)}
+                              </div>
+                            ) : matrixDisplayMode === 'quantity' ? (
+                              <div style={{
+                                font: `700 12px/1 ${mono}`,
+                                color: '#047538',
+                                background: t ? 'rgba(4,117,56,0.15)' : '#E5F5EC',
+                                padding: '6px 8px',
+                                borderRadius: 6,
+                              }}>
+                                {row.warehouses.reduce((sum, w) => sum + w.quantity, 0).toLocaleString()}
+                              </div>
+                            ) : null}
+                            {/* Status dropdown always visible */}
                             <select
                               value={overallStatus}
                               onChange={(e) => handleBulkStatusChange(row.skuId, e.target.value as SKUStatus)}
                               style={{
                                 width: '100%',
-                                padding: '6px 8px',
+                                padding: matrixDisplayMode === 'status' ? '6px 8px' : '4px 6px',
                                 border: 0,
-                                borderRadius: 6,
+                                borderRadius: 4,
                                 cursor: 'pointer',
-                                font: `600 10px/1 ${font}`,
+                                font: `600 ${matrixDisplayMode === 'status' ? '10px' : '9px'}/1 ${font}`,
                                 background: t ? `${oss.fg}25` : oss.bg,
                                 color: oss.fg,
                                 appearance: 'none',
@@ -793,7 +795,7 @@ export default function SKUControlTowerPage() {
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                               ))}
                             </select>
-                          )}
+                          </div>
                         </td>
 
                         {/* Warehouse Cells */}
@@ -814,39 +816,83 @@ export default function SKUControlTowerPage() {
                               onMouseLeave={() => setHoveredCell(null)}
                             >
                               {matrixDisplayMode === 'price' ? (
-                                // Price Display
-                                <div style={{
-                                  font: `700 12px/1 ${mono}`,
-                                  color: inStock ? fg1 : fg3,
-                                  background: inStock
-                                    ? (t ? 'rgba(70,41,255,0.08)' : 'rgba(70,41,255,0.05)')
-                                    : (t ? 'rgba(107,109,115,0.1)' : '#F4F5F6'),
-                                  padding: '6px 8px',
-                                  borderRadius: 6,
-                                  opacity: inStock ? 1 : 0.5,
-                                  textDecoration: inStock ? 'none' : 'line-through',
-                                }}>
-                                  {row.discount ? (
-                                    <span style={{ color: '#D62D0B' }}>
-                                      {(row.basePrice * (1 - row.discount / 100)).toFixed(2)}
-                                    </span>
-                                  ) : row.basePrice.toFixed(2)}
+                                // Price Display with Status Dropdown
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{
+                                    font: `700 12px/1 ${mono}`,
+                                    color: inStock ? fg1 : fg3,
+                                    background: inStock
+                                      ? (t ? 'rgba(70,41,255,0.08)' : 'rgba(70,41,255,0.05)')
+                                      : (t ? 'rgba(107,109,115,0.1)' : '#F4F5F6'),
+                                    padding: '6px 8px',
+                                    borderRadius: 6,
+                                    opacity: inStock ? 1 : 0.5,
+                                    textDecoration: inStock ? 'none' : 'line-through',
+                                  }}>
+                                    {row.discount ? (
+                                      <span style={{ color: '#D62D0B' }}>
+                                        {(row.basePrice * (1 - row.discount / 100)).toFixed(2)}
+                                      </span>
+                                    ) : row.basePrice.toFixed(2)}
+                                  </div>
+                                  <select
+                                    value={status}
+                                    onChange={(e) => handleMatrixStatusChange(row.skuId, wh, e.target.value as SKUStatus)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '4px 6px',
+                                      border: 0,
+                                      borderRadius: 4,
+                                      cursor: 'pointer',
+                                      font: `600 9px/1 ${font}`,
+                                      background: t ? `${ss.fg}25` : ss.bg,
+                                      color: ss.fg,
+                                      appearance: 'none',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    {STATUS_OPTIONS.map(opt => (
+                                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                  </select>
                                 </div>
                               ) : matrixDisplayMode === 'quantity' ? (
-                                // Quantity Display
-                                <div style={{
-                                  font: `700 12px/1 ${mono}`,
-                                  color: inStock ? '#047538' : '#D62D0B',
-                                  background: inStock
-                                    ? (t ? 'rgba(4,117,56,0.15)' : '#E5F5EC')
-                                    : (t ? 'rgba(214,45,11,0.15)' : '#FCEBE8'),
-                                  padding: '6px 8px',
-                                  borderRadius: 6,
-                                }}>
-                                  {inStock ? quantity.toLocaleString() : 'OOS'}
+                                // Quantity Display with Status Dropdown
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{
+                                    font: `700 12px/1 ${mono}`,
+                                    color: inStock ? '#047538' : '#D62D0B',
+                                    background: inStock
+                                      ? (t ? 'rgba(4,117,56,0.15)' : '#E5F5EC')
+                                      : (t ? 'rgba(214,45,11,0.15)' : '#FCEBE8'),
+                                    padding: '6px 8px',
+                                    borderRadius: 6,
+                                  }}>
+                                    {inStock ? quantity.toLocaleString() : 'OOS'}
+                                  </div>
+                                  <select
+                                    value={status}
+                                    onChange={(e) => handleMatrixStatusChange(row.skuId, wh, e.target.value as SKUStatus)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '4px 6px',
+                                      border: 0,
+                                      borderRadius: 4,
+                                      cursor: 'pointer',
+                                      font: `600 9px/1 ${font}`,
+                                      background: t ? `${ss.fg}25` : ss.bg,
+                                      color: ss.fg,
+                                      appearance: 'none',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    {STATUS_OPTIONS.map(opt => (
+                                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                  </select>
                                 </div>
                               ) : (
-                                // Status Dropdown
+                                // Status Dropdown Only
                                 <select
                                   value={status}
                                   onChange={(e) => handleMatrixStatusChange(row.skuId, wh, e.target.value as SKUStatus)}
