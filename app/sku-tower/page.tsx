@@ -106,6 +106,7 @@ export default function SKUControlTowerPage() {
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [hoveredCell, setHoveredCell] = useState<{ skuId: string; warehouse: Warehouse } | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [matrixDisplayMode, setMatrixDisplayMode] = useState<'status' | 'price' | 'quantity'>('price');
 
   const card: React.CSSProperties = { background: t ? '#1E1E20' : '#fff', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 12 };
   const fg1 = t ? '#fff' : '#141415';
@@ -635,18 +636,73 @@ export default function SKUControlTowerPage() {
             )}
           </div>
 
-          {/* Status Legend */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 0' }}>
-            <span style={{ font: `600 11px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status Legend:</span>
-            {STATUS_OPTIONS.map(opt => {
-              const ss = statusStyle[opt.value];
-              return (
-                <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 12, height: 12, borderRadius: 3, background: ss.bg, border: `1px solid ${ss.fg}30` }} />
-                  <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>{opt.label}</span>
+          {/* Matrix Display Mode Toggle & Legend */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
+            {/* Display Mode Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ font: `600 11px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Show:</span>
+              <div style={{ display: 'flex', gap: 2, background: t ? '#1E1E20' : '#F4F5F6', borderRadius: 6, padding: 2, border: `1px solid ${t ? '#343437' : '#E9EAEC'}` }}>
+                {[
+                  { value: 'price', label: 'Price', icon: '💰' },
+                  { value: 'status', label: 'Status', icon: '📊' },
+                  { value: 'quantity', label: 'Qty', icon: '📦' },
+                ].map(mode => (
+                  <button
+                    key={mode.value}
+                    onClick={() => setMatrixDisplayMode(mode.value as 'status' | 'price' | 'quantity')}
+                    style={{
+                      padding: '6px 12px',
+                      border: 0,
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      font: `600 11px/1 ${font}`,
+                      background: matrixDisplayMode === mode.value ? (t ? '#343437' : '#fff') : 'transparent',
+                      color: matrixDisplayMode === mode.value ? fg1 : fg3,
+                      boxShadow: matrixDisplayMode === mode.value ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 150ms',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span>{mode.icon}</span>
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Legend */}
+            {matrixDisplayMode === 'status' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {STATUS_OPTIONS.map(opt => {
+                  const ss = statusStyle[opt.value];
+                  return (
+                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 2, background: ss.bg, border: `1px solid ${ss.fg}30` }} />
+                      <span style={{ font: `500 10px/1 ${font}`, color: fg2 }}>{opt.label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {matrixDisplayMode === 'price' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ font: `500 10px/1 ${font}`, color: fg2 }}>💰 Price shown in AED per unit</span>
+              </div>
+            )}
+            {matrixDisplayMode === 'quantity' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: '#047538' }} />
+                  <span style={{ font: `500 10px/1 ${font}`, color: fg2 }}>In Stock</span>
                 </span>
-              );
-            })}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: '#D62D0B' }} />
+                  <span style={{ font: `500 10px/1 ${font}`, color: fg2 }}>Out of Stock</span>
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Matrix Table */}
@@ -689,28 +745,55 @@ export default function SKUControlTowerPage() {
                           <div style={{ font: `500 10px/1.3 ${font}`, color: fg3, marginTop: 2 }}>{row.supplier} · {row.skuId}</div>
                         </td>
 
-                        {/* All Warehouses (Chain Override) */}
+                        {/* All Warehouses Cell */}
                         <td style={{ padding: '8px', textAlign: 'center' }}>
-                          <select
-                            value={overallStatus}
-                            onChange={(e) => handleBulkStatusChange(row.skuId, e.target.value as SKUStatus)}
-                            style={{
-                              width: '100%',
+                          {matrixDisplayMode === 'price' ? (
+                            <div style={{
+                              font: `700 12px/1 ${mono}`,
+                              color: fg1,
+                              background: t ? 'rgba(70,41,255,0.1)' : '#EDEBFF',
                               padding: '6px 8px',
-                              border: 0,
                               borderRadius: 6,
-                              cursor: 'pointer',
-                              font: `600 10px/1 ${font}`,
-                              background: t ? `${oss.fg}25` : oss.bg,
-                              color: oss.fg,
-                              appearance: 'none',
-                              textAlign: 'center',
-                            }}
-                          >
-                            {STATUS_OPTIONS.map(opt => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
+                            }}>
+                              {row.discount ? (
+                                <>
+                                  <span style={{ textDecoration: 'line-through', opacity: 0.5, marginRight: 4 }}>{row.basePrice.toFixed(2)}</span>
+                                  <span style={{ color: '#D62D0B' }}>{(row.basePrice * (1 - row.discount / 100)).toFixed(2)}</span>
+                                </>
+                              ) : row.basePrice.toFixed(2)}
+                            </div>
+                          ) : matrixDisplayMode === 'quantity' ? (
+                            <div style={{
+                              font: `700 12px/1 ${mono}`,
+                              color: '#047538',
+                              background: t ? 'rgba(4,117,56,0.15)' : '#E5F5EC',
+                              padding: '6px 8px',
+                              borderRadius: 6,
+                            }}>
+                              {row.warehouses.reduce((sum, w) => sum + w.quantity, 0).toLocaleString()}
+                            </div>
+                          ) : (
+                            <select
+                              value={overallStatus}
+                              onChange={(e) => handleBulkStatusChange(row.skuId, e.target.value as SKUStatus)}
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                border: 0,
+                                borderRadius: 6,
+                                cursor: 'pointer',
+                                font: `600 10px/1 ${font}`,
+                                background: t ? `${oss.fg}25` : oss.bg,
+                                color: oss.fg,
+                                appearance: 'none',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {STATUS_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                          )}
                         </td>
 
                         {/* Warehouse Cells */}
@@ -730,26 +813,61 @@ export default function SKUControlTowerPage() {
                               onMouseEnter={() => setHoveredCell({ skuId: row.skuId, warehouse: wh })}
                               onMouseLeave={() => setHoveredCell(null)}
                             >
-                              <select
-                                value={status}
-                                onChange={(e) => handleMatrixStatusChange(row.skuId, wh, e.target.value as SKUStatus)}
-                                style={{
-                                  width: '100%',
+                              {matrixDisplayMode === 'price' ? (
+                                // Price Display
+                                <div style={{
+                                  font: `700 12px/1 ${mono}`,
+                                  color: inStock ? fg1 : fg3,
+                                  background: inStock
+                                    ? (t ? 'rgba(70,41,255,0.08)' : 'rgba(70,41,255,0.05)')
+                                    : (t ? 'rgba(107,109,115,0.1)' : '#F4F5F6'),
                                   padding: '6px 8px',
-                                  border: 0,
                                   borderRadius: 6,
-                                  cursor: 'pointer',
-                                  font: `600 10px/1 ${font}`,
-                                  background: t ? `${ss.fg}25` : ss.bg,
-                                  color: ss.fg,
-                                  appearance: 'none',
-                                  textAlign: 'center',
-                                }}
-                              >
-                                {STATUS_OPTIONS.map(opt => (
-                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                              </select>
+                                  opacity: inStock ? 1 : 0.5,
+                                  textDecoration: inStock ? 'none' : 'line-through',
+                                }}>
+                                  {row.discount ? (
+                                    <span style={{ color: '#D62D0B' }}>
+                                      {(row.basePrice * (1 - row.discount / 100)).toFixed(2)}
+                                    </span>
+                                  ) : row.basePrice.toFixed(2)}
+                                </div>
+                              ) : matrixDisplayMode === 'quantity' ? (
+                                // Quantity Display
+                                <div style={{
+                                  font: `700 12px/1 ${mono}`,
+                                  color: inStock ? '#047538' : '#D62D0B',
+                                  background: inStock
+                                    ? (t ? 'rgba(4,117,56,0.15)' : '#E5F5EC')
+                                    : (t ? 'rgba(214,45,11,0.15)' : '#FCEBE8'),
+                                  padding: '6px 8px',
+                                  borderRadius: 6,
+                                }}>
+                                  {inStock ? quantity.toLocaleString() : 'OOS'}
+                                </div>
+                              ) : (
+                                // Status Dropdown
+                                <select
+                                  value={status}
+                                  onChange={(e) => handleMatrixStatusChange(row.skuId, wh, e.target.value as SKUStatus)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '6px 8px',
+                                    border: 0,
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                    font: `600 10px/1 ${font}`,
+                                    background: t ? `${ss.fg}25` : ss.bg,
+                                    color: ss.fg,
+                                    appearance: 'none',
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  {STATUS_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                  ))}
+                                </select>
+                              )}
 
                               {/* Tooltip */}
                               {isHovered && (
@@ -770,6 +888,10 @@ export default function SKUControlTowerPage() {
                                 }}>
                                   <div style={{ font: `600 12px/1.3 ${font}`, marginBottom: 6 }}>{wh}</div>
                                   <div style={{ display: 'grid', gap: 4 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                      <span style={{ opacity: 0.7 }}>Price:</span>
+                                      <span style={{ font: `600 11px/1 ${font}` }}>AED {row.discount ? (row.basePrice * (1 - row.discount / 100)).toFixed(2) : row.basePrice.toFixed(2)}{row.discount && <span style={{ color: '#A2FAA3', marginLeft: 4 }}>(-{row.discount}%)</span>}</span>
+                                    </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
                                       <span style={{ opacity: 0.7 }}>Status:</span>
                                       <span style={{ font: `600 11px/1 ${font}` }}>{status.replace('-', ' ')}</span>
