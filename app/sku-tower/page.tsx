@@ -1,12 +1,28 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { SAMPLE_SKUS, Warehouse, SKUStatus, WAREHOUSE_CLUSTERS, UAE_WAREHOUSES } from '@/lib/sample-data';
+import { SAMPLE_SKUS, Warehouse, SKUStatus, WarehouseCluster, UAE_WAREHOUSES } from '@/lib/sample-data';
 import { useTheme } from '@/lib/ThemeContext';
 import { exportData, generateFilename, ExportColumn } from '@/lib/export';
 import { ExportButton } from '@/components/ExportButton';
 import { StatusDistributionChart } from '@/components/Charts';
 import { SKUDrilldownPanel } from '@/components/SKUDrilldownPanel';
+
+// Initial clusters data
+const INITIAL_CLUSTERS: WarehouseCluster[] = [
+  {
+    id: 'cluster-dubai',
+    name: 'Dubai Metro',
+    warehouses: ['Dubai Central', 'Sharjah DC', 'Ajman Warehouse'],
+    region: 'Dubai & Northern Emirates',
+  },
+  {
+    id: 'cluster-abudhabi',
+    name: 'Abu Dhabi Region',
+    warehouses: ['Abu Dhabi Hub', 'Ras Al Khaimah'],
+    region: 'Abu Dhabi & RAK',
+  },
+];
 
 const CATEGORIES_L0 = [
   { id: 'all', name: 'All Categories' }, { id: 'beverages', name: 'Beverages' }, { id: 'dairy-chilled-eggs', name: 'Dairy & Eggs' },
@@ -95,7 +111,7 @@ export default function SKUControlTowerPage() {
   const [skus, setSkus] = useState<SKURow[]>(SAMPLE_SKUS);
   const [loading, setLoading] = useState(false);
   const [selectedSKU, setSelectedSKU] = useState<SKURow | null>(null);
-  const [viewMode, setViewMode] = useState<'sku' | 'matrix'>('sku');
+  const [viewMode, setViewMode] = useState<'sku' | 'matrix' | 'clusters'>('sku');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [supplierFilter, setSupplierFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -107,6 +123,16 @@ export default function SKUControlTowerPage() {
   const [hoveredCell, setHoveredCell] = useState<{ skuId: string; warehouse: Warehouse } | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [matrixDisplayMode, setMatrixDisplayMode] = useState<'status' | 'price' | 'quantity'>('price');
+
+  // Clusters state
+  const [clusters, setClusters] = useState<WarehouseCluster[]>(INITIAL_CLUSTERS);
+  const [editingCluster, setEditingCluster] = useState<WarehouseCluster | null>(null);
+  const [isCreatingCluster, setIsCreatingCluster] = useState(false);
+  const [newCluster, setNewCluster] = useState<Partial<WarehouseCluster>>({
+    name: '',
+    warehouses: [],
+    region: '',
+  });
 
   const card: React.CSSProperties = { background: t ? '#1E1E20' : '#fff', border: `1px solid ${t ? '#343437' : '#E9EAEC'}`, borderRadius: 12 };
   const fg1 = t ? '#fff' : '#141415';
@@ -168,6 +194,54 @@ export default function SKUControlTowerPage() {
     setAvailabilityFilter('all');
     setSearch('');
   };
+
+  // Cluster management functions
+  const handleCreateCluster = () => {
+    if (!newCluster.name || !newCluster.warehouses?.length) return;
+    const cluster: WarehouseCluster = {
+      id: `cluster-${Date.now()}`,
+      name: newCluster.name,
+      warehouses: newCluster.warehouses as Warehouse[],
+      region: newCluster.region || '',
+    };
+    setClusters([...clusters, cluster]);
+    setNewCluster({ name: '', warehouses: [], region: '' });
+    setIsCreatingCluster(false);
+  };
+
+  const handleUpdateCluster = (clusterId: string, updates: Partial<WarehouseCluster>) => {
+    setClusters(clusters.map(c => c.id === clusterId ? { ...c, ...updates } : c));
+  };
+
+  const handleDeleteCluster = (clusterId: string) => {
+    setClusters(clusters.filter(c => c.id !== clusterId));
+  };
+
+  const toggleWarehouseInCluster = (warehouse: Warehouse, clusterId?: string) => {
+    if (clusterId) {
+      // Editing existing cluster
+      const cluster = clusters.find(c => c.id === clusterId);
+      if (cluster) {
+        const newWarehouses = cluster.warehouses.includes(warehouse)
+          ? cluster.warehouses.filter(w => w !== warehouse)
+          : [...cluster.warehouses, warehouse];
+        handleUpdateCluster(clusterId, { warehouses: newWarehouses });
+      }
+    } else {
+      // Creating new cluster
+      const currentWarehouses = newCluster.warehouses || [];
+      const newWarehouses = currentWarehouses.includes(warehouse)
+        ? currentWarehouses.filter(w => w !== warehouse)
+        : [...currentWarehouses, warehouse];
+      setNewCluster({ ...newCluster, warehouses: newWarehouses as Warehouse[] });
+    }
+  };
+
+  // Get unassigned warehouses
+  const unassignedWarehouses = useMemo(() => {
+    const assignedWarehouses = new Set(clusters.flatMap(c => c.warehouses));
+    return UAE_WAREHOUSES.filter(wh => !assignedWarehouses.has(wh));
+  }, [clusters]);
 
   // Status distribution chart data
   const statusChartData = [
@@ -251,19 +325,19 @@ export default function SKUControlTowerPage() {
           <button
             onClick={() => setViewMode('sku')}
             style={{
-              padding: '10px 20px',
+              padding: '10px 16px',
               border: 0,
               borderRadius: 8,
               cursor: 'pointer',
-              font: `600 13px/1 ${font}`,
+              font: `600 12px/1 ${font}`,
               background: viewMode === 'sku' ? (t ? '#343437' : '#fff') : 'transparent',
               color: viewMode === 'sku' ? fg1 : fg3,
               boxShadow: viewMode === 'sku' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               transition: 'all 150ms',
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
               </svg>
               SKU View
@@ -272,25 +346,50 @@ export default function SKUControlTowerPage() {
           <button
             onClick={() => setViewMode('matrix')}
             style={{
-              padding: '10px 20px',
+              padding: '10px 16px',
               border: 0,
               borderRadius: 8,
               cursor: 'pointer',
-              font: `600 13px/1 ${font}`,
+              font: `600 12px/1 ${font}`,
               background: viewMode === 'matrix' ? (t ? '#343437' : '#fff') : 'transparent',
               color: viewMode === 'matrix' ? fg1 : fg3,
               boxShadow: viewMode === 'matrix' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               transition: 'all 150ms',
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="3" width="7" height="7" rx="1" />
                 <rect x="14" y="3" width="7" height="7" rx="1" />
                 <rect x="3" y="14" width="7" height="7" rx="1" />
                 <rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
               Matrix View
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode('clusters')}
+            style={{
+              padding: '10px 16px',
+              border: 0,
+              borderRadius: 8,
+              cursor: 'pointer',
+              font: `600 12px/1 ${font}`,
+              background: viewMode === 'clusters' ? (t ? '#343437' : '#fff') : 'transparent',
+              color: viewMode === 'clusters' ? fg1 : fg3,
+              boxShadow: viewMode === 'clusters' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 150ms',
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="6" cy="6" r="3" />
+                <circle cx="18" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="18" r="3" />
+                <path d="M6 9v6M18 9v6M9 6h6M9 18h6" />
+              </svg>
+              Clusters
             </span>
           </button>
         </div>
@@ -425,7 +524,7 @@ export default function SKUControlTowerPage() {
                   }));
                 }}
                 onUpdateClusterStatus={(clusterId, status) => {
-                  const cluster = WAREHOUSE_CLUSTERS.find(c => c.id === clusterId);
+                  const cluster = clusters.find(c => c.id === clusterId);
                   if (cluster) {
                     setSkus(prevSkus => prevSkus.map(sku => {
                       if (sku.skuId === selectedSKU.skuId) {
@@ -988,6 +1087,337 @@ export default function SKUControlTowerPage() {
                   <option>50 / page</option>
                   <option>100 / page</option>
                 </select>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      {/* Clusters View */}
+      {viewMode === 'clusters' && (
+        <>
+          {/* Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            <div style={{ ...card, padding: '14px 18px' }}>
+              <div style={{ font: `500 11px/1 ${font}`, color: fg2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Clusters</div>
+              <div style={{ font: `700 22px/1.2 ${font}`, color: fg1, marginTop: 6 }}>{clusters.length}</div>
+            </div>
+            <div style={{ ...card, padding: '14px 18px' }}>
+              <div style={{ font: `500 11px/1 ${font}`, color: fg2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Warehouses</div>
+              <div style={{ font: `700 22px/1.2 ${font}`, color: '#4629FF', marginTop: 6 }}>{UAE_WAREHOUSES.length}</div>
+            </div>
+            <div style={{ ...card, padding: '14px 18px' }}>
+              <div style={{ font: `500 11px/1 ${font}`, color: fg2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Assigned Warehouses</div>
+              <div style={{ font: `700 22px/1.2 ${font}`, color: '#047538', marginTop: 6 }}>{UAE_WAREHOUSES.length - unassignedWarehouses.length}</div>
+            </div>
+            <div style={{ ...card, padding: '14px 18px' }}>
+              <div style={{ font: `500 11px/1 ${font}`, color: fg2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Unassigned</div>
+              <div style={{ font: `700 22px/1.2 ${font}`, color: unassignedWarehouses.length > 0 ? '#D62D0B' : '#047538', marginTop: 6 }}>{unassignedWarehouses.length}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+            {/* Clusters List */}
+            <div style={{ ...card, padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ font: `700 16px/1.3 ${font}`, color: fg1 }}>Warehouse Clusters</div>
+                <button
+                  onClick={() => setIsCreatingCluster(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    border: 0,
+                    borderRadius: 8,
+                    background: '#4629FF',
+                    color: '#fff',
+                    font: `600 12px/1 ${font}`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  </svg>
+                  New Cluster
+                </button>
+              </div>
+
+              {/* Create New Cluster Form */}
+              {isCreatingCluster && (
+                <div style={{ background: t ? '#343437' : '#F4F5F6', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                  <div style={{ font: `600 14px/1.3 ${font}`, color: fg1, marginBottom: 12 }}>Create New Cluster</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div>
+                      <label style={{ font: `500 11px/1 ${font}`, color: fg3, display: 'block', marginBottom: 4 }}>Cluster Name</label>
+                      <input
+                        value={newCluster.name || ''}
+                        onChange={e => setNewCluster({ ...newCluster, name: e.target.value })}
+                        placeholder="e.g., Dubai Metro"
+                        style={{ width: '100%', padding: '10px 12px', border: `1px solid ${t ? '#434347' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 13px/1 ${font}`, outline: 'none' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ font: `500 11px/1 ${font}`, color: fg3, display: 'block', marginBottom: 4 }}>Region</label>
+                      <input
+                        value={newCluster.region || ''}
+                        onChange={e => setNewCluster({ ...newCluster, region: e.target.value })}
+                        placeholder="e.g., Dubai & Northern Emirates"
+                        style={{ width: '100%', padding: '10px 12px', border: `1px solid ${t ? '#434347' : '#E9EAEC'}`, borderRadius: 8, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 13px/1 ${font}`, outline: 'none' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ font: `500 11px/1 ${font}`, color: fg3, display: 'block', marginBottom: 8 }}>Select Warehouses</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {UAE_WAREHOUSES.map(wh => {
+                          const isSelected = newCluster.warehouses?.includes(wh);
+                          return (
+                            <button
+                              key={wh}
+                              onClick={() => toggleWarehouseInCluster(wh)}
+                              style={{
+                                padding: '8px 12px',
+                                border: `1px solid ${isSelected ? '#4629FF' : (t ? '#434347' : '#E9EAEC')}`,
+                                borderRadius: 8,
+                                background: isSelected ? (t ? 'rgba(70,41,255,0.15)' : '#EDEBFF') : 'transparent',
+                                color: isSelected ? '#4629FF' : fg2,
+                                font: `500 12px/1 ${font}`,
+                                cursor: 'pointer',
+                                transition: 'all 150ms',
+                              }}
+                            >
+                              {wh}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => { setIsCreatingCluster(false); setNewCluster({ name: '', warehouses: [], region: '' }); }}
+                        style={{ padding: '8px 16px', border: `1px solid ${t ? '#434347' : '#E9EAEC'}`, borderRadius: 8, background: 'transparent', color: fg2, font: `600 12px/1 ${font}`, cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateCluster}
+                        disabled={!newCluster.name || !newCluster.warehouses?.length}
+                        style={{ padding: '8px 16px', border: 0, borderRadius: 8, background: newCluster.name && newCluster.warehouses?.length ? '#4629FF' : (t ? '#343437' : '#E9EAEC'), color: newCluster.name && newCluster.warehouses?.length ? '#fff' : fg3, font: `600 12px/1 ${font}`, cursor: newCluster.name && newCluster.warehouses?.length ? 'pointer' : 'not-allowed' }}
+                      >
+                        Create Cluster
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Existing Clusters */}
+              {clusters.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: fg3 }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 12px', opacity: 0.5 }}>
+                    <circle cx="6" cy="6" r="3" />
+                    <circle cx="18" cy="6" r="3" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="18" r="3" />
+                    <path d="M6 9v6M18 9v6M9 6h6M9 18h6" />
+                  </svg>
+                  <div style={{ font: `500 14px/1.3 ${font}` }}>No clusters created yet</div>
+                  <div style={{ font: `400 12px/1.3 ${font}`, marginTop: 4 }}>Create a cluster to group warehouses together</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {clusters.map(cluster => (
+                    <div
+                      key={cluster.id}
+                      style={{
+                        background: t ? '#343437' : '#F4F5F6',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {editingCluster?.id === cluster.id ? (
+                        // Edit Mode
+                        <div style={{ padding: 16 }}>
+                          <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ font: `500 10px/1 ${font}`, color: fg3, display: 'block', marginBottom: 4 }}>Name</label>
+                              <input
+                                value={editingCluster.name}
+                                onChange={e => setEditingCluster({ ...editingCluster, name: e.target.value })}
+                                style={{ width: '100%', padding: '8px 10px', border: `1px solid ${t ? '#434347' : '#E9EAEC'}`, borderRadius: 6, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }}
+                              />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ font: `500 10px/1 ${font}`, color: fg3, display: 'block', marginBottom: 4 }}>Region</label>
+                              <input
+                                value={editingCluster.region}
+                                onChange={e => setEditingCluster({ ...editingCluster, region: e.target.value })}
+                                style={{ width: '100%', padding: '8px 10px', border: `1px solid ${t ? '#434347' : '#E9EAEC'}`, borderRadius: 6, background: t ? '#1E1E20' : '#fff', color: fg1, font: `500 12px/1 ${font}`, outline: 'none' }}
+                              />
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: 12 }}>
+                            <label style={{ font: `500 10px/1 ${font}`, color: fg3, display: 'block', marginBottom: 6 }}>Warehouses</label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                              {UAE_WAREHOUSES.map(wh => {
+                                const isSelected = editingCluster.warehouses.includes(wh);
+                                return (
+                                  <button
+                                    key={wh}
+                                    onClick={() => toggleWarehouseInCluster(wh, cluster.id)}
+                                    style={{
+                                      padding: '6px 10px',
+                                      border: `1px solid ${isSelected ? '#4629FF' : (t ? '#434347' : '#E9EAEC')}`,
+                                      borderRadius: 6,
+                                      background: isSelected ? (t ? 'rgba(70,41,255,0.15)' : '#EDEBFF') : 'transparent',
+                                      color: isSelected ? '#4629FF' : fg2,
+                                      font: `500 11px/1 ${font}`,
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    {wh}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => setEditingCluster(null)}
+                              style={{ padding: '6px 12px', border: `1px solid ${t ? '#434347' : '#E9EAEC'}`, borderRadius: 6, background: 'transparent', color: fg2, font: `600 11px/1 ${font}`, cursor: 'pointer' }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => { handleUpdateCluster(cluster.id, { name: editingCluster.name, region: editingCluster.region, warehouses: editingCluster.warehouses }); setEditingCluster(null); }}
+                              style={{ padding: '6px 12px', border: 0, borderRadius: 6, background: '#047538', color: '#fff', font: `600 11px/1 ${font}`, cursor: 'pointer' }}
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // View Mode
+                        <div style={{ padding: 16 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                              <div style={{ font: `700 15px/1.3 ${font}`, color: fg1 }}>{cluster.name}</div>
+                              <div style={{ font: `500 12px/1.3 ${font}`, color: fg3, marginTop: 2 }}>{cluster.region}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button
+                                onClick={() => setEditingCluster(cluster)}
+                                style={{ padding: 6, border: 0, borderRadius: 6, background: 'transparent', cursor: 'pointer', color: fg3 }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCluster(cluster.id)}
+                                style={{ padding: 6, border: 0, borderRadius: 6, background: 'transparent', cursor: 'pointer', color: '#D62D0B' }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+                            {cluster.warehouses.map(wh => (
+                              <span
+                                key={wh}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '6px 10px',
+                                  background: t ? 'rgba(70,41,255,0.1)' : '#EDEBFF',
+                                  color: '#4629FF',
+                                  font: `600 11px/1 ${font}`,
+                                  borderRadius: 6,
+                                }}
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                                  <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                {wh}
+                              </span>
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                            <span style={{ font: `500 11px/1 ${font}`, color: fg3 }}>{cluster.warehouses.length} warehouses</span>
+                            <span style={{ width: 4, height: 4, borderRadius: '50%', background: fg3 }} />
+                            <span style={{ font: `500 11px/1 ${font}`, color: fg3 }}>
+                              {skus.reduce((sum, sku) => {
+                                const clusterQty = sku.warehouses
+                                  .filter(w => cluster.warehouses.includes(w.warehouse))
+                                  .reduce((q, w) => q + w.quantity, 0);
+                                return sum + clusterQty;
+                              }, 0).toLocaleString()} total units
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Warehouse Map */}
+            <div style={{ ...card, padding: 20 }}>
+              <div style={{ font: `700 14px/1.3 ${font}`, color: fg1, marginBottom: 16 }}>Warehouse Overview</div>
+
+              {/* All Warehouses */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ font: `600 11px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>All Warehouses ({UAE_WAREHOUSES.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {UAE_WAREHOUSES.map(wh => {
+                    const assignedCluster = clusters.find(c => c.warehouses.includes(wh));
+                    return (
+                      <div
+                        key={wh}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          background: t ? '#343437' : '#F4F5F6',
+                          borderRadius: 8,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: assignedCluster ? '#047538' : '#D62D0B' }} />
+                          <span style={{ font: `500 12px/1 ${font}`, color: fg1 }}>{wh}</span>
+                        </div>
+                        {assignedCluster ? (
+                          <span style={{ font: `500 10px/1 ${font}`, color: '#047538', background: t ? 'rgba(4,117,56,0.15)' : '#E5F5EC', padding: '3px 8px', borderRadius: 4 }}>
+                            {assignedCluster.name}
+                          </span>
+                        ) : (
+                          <span style={{ font: `500 10px/1 ${font}`, color: '#D62D0B', background: t ? 'rgba(214,45,11,0.15)' : '#FCEBE8', padding: '3px 8px', borderRadius: 4 }}>
+                            Unassigned
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px', background: t ? '#1E1E20' : '#fff', borderRadius: 8, border: `1px solid ${t ? '#343437' : '#E9EAEC'}` }}>
+                <div style={{ font: `600 10px/1 ${font}`, color: fg3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Legend</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#047538' }} />
+                  <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>Assigned to cluster</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#D62D0B' }} />
+                  <span style={{ font: `500 11px/1 ${font}`, color: fg2 }}>Unassigned</span>
+                </div>
               </div>
             </div>
           </div>
